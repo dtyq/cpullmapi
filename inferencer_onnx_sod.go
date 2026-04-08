@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sync"
 
 	"github.com/davidbyttow/govips/v2/vips"
 	ort "github.com/yalue/onnxruntime_go"
@@ -12,7 +11,6 @@ import (
 
 type ONNXSODInferencer struct {
 	session         *ort.AdvancedSession
-	sessionMutex    sync.Mutex
 	preprocessor    *ViTImageProcessor
 	postprocessFunc imagePostprocessFunc[ONNXSODInferencer]
 	inputTensors    []ort.Value
@@ -96,9 +94,7 @@ func (in *ONNXSODInferencer) SegmentImage(image *vips.ImageRef) ([]*vips.ImageRe
 	inputTensor := in.inputTensors[0].(*ort.Tensor[float32])
 	copy(inputTensor.GetData(), chwArray)
 
-	in.sessionMutex.Lock()
 	err = in.session.Run()
-	in.sessionMutex.Unlock()
 	if err != nil {
 		return nil, fmt.Errorf("failed to run session: %v", err)
 	}

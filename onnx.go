@@ -18,19 +18,20 @@ func onnxSessionOptions() (*ort.SessionOptions, error) {
 	if err := opts.SetInterOpNumThreads(1); err != nil {
 		return nil, fmt.Errorf("failed to set inter op num threads: %v", err)
 	}
-	err = opts.AppendExecutionProviderOpenVINO(map[string]string{
-		"device_type": "CPU",
-		"load_config": `{
-			"CPU": {
-				"PERFORMANCE_HINT":        "LATENCY",
-				"INFERENCE_NUM_THREADS":   "2",
-				"NUM_STREAMS":             "1"
-			}
-		}`,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to append execution provider openvino: %v", err)
-	}
+	// err = opts.AppendExecutionProviderOpenVINO(map[string]string{
+	// 	"device_type": "CPU",
+	// 	"load_config": `{
+	// 		"CPU": {
+	// 			"PERFORMANCE_HINT": "LATENCY",
+	// 			"INFERENCE_NUM_THREADS": "1",
+	// 			"NUM_STREAMS": "2",
+	// 			"ENABLE_CPU_PINNING": "yes"
+	// 		}
+	// 	}`,
+	// })
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to append execution provider openvino: %v", err)
+	// }
 	return opts, nil
 }
 
