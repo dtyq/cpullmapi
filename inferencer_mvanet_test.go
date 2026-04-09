@@ -1,21 +1,16 @@
 package cpullmapi
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
-
-	ort "github.com/yalue/onnxruntime_go"
 )
 
 func TestMVANetInferencer(t *testing.T) {
-	ort.SetSharedLibraryPath(onnxSharedLibraryPath)
-
-	err := ort.InitializeEnvironment()
-	if err != nil {
-		t.Fatalf("failed to initialize ort environment: %v", err)
-	}
-	defer ort.DestroyEnvironment()
+	var err error
+	cleanup := initORT(t)
+	defer cleanup()
 
 	tcs := []struct {
 		name                   string
@@ -36,9 +31,11 @@ func TestMVANetInferencer(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			var inferencer Inferencer
-			inferencer, err = NewMVANetInferencer(
-				tc.modelPath,
-				tc.preprocessorConfigPath,
+			inferencer, err = NewONNXMVANetInferencer(
+				ONNXSODCommonConfig{
+					ModelPath:              tc.modelPath,
+					PreprocessorConfigPath: tc.preprocessorConfigPath,
+				},
 			)
 			if err != nil {
 				t.Fatalf("failed to create onnx inferencer: %v", err)
@@ -50,7 +47,7 @@ func TestMVANetInferencer(t *testing.T) {
 				t.Fatalf("failed to open image: %v", err)
 			}
 
-			segments, err := inferencer.SegmentImage(image)
+			segments, err := inferencer.SegmentImage(context.Background(), image)
 			if err != nil {
 				t.Fatalf("failed to segment image: %v", err)
 			}

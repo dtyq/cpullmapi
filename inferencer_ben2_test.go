@@ -1,21 +1,16 @@
 package cpullmapi
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
-
-	ort "github.com/yalue/onnxruntime_go"
 )
 
 func TestBEN2Inferencer(t *testing.T) {
-	ort.SetSharedLibraryPath(onnxSharedLibraryPath)
-
-	err := ort.InitializeEnvironment()
-	if err != nil {
-		t.Fatalf("failed to initialize ort environment: %v", err)
-	}
-	defer ort.DestroyEnvironment()
+	var err error
+	cleanup := initORT(t)
+	defer cleanup()
 
 	tcs := []struct {
 		name                   string
@@ -32,23 +27,15 @@ func TestBEN2Inferencer(t *testing.T) {
 			modelPath:              "./models/onnx-community/ormbg-ONNX/onnx/model_fp16.onnx",
 			preprocessorConfigPath: "./models/onnx-community/ormbg-ONNX/preprocessor_config.json",
 		},
-		{
-			name:                   "MVANet",
-			modelPath:              "./models/onnx-community/MVANet-ONNX/onnx/model_fp16.onnx",
-			preprocessorConfigPath: "./models/onnx-community/MVANet-ONNX/preprocessor_config.json",
-		},
-		{
-			name:                   "MVANet_q4f16",
-			modelPath:              "./models/onnx-community/MVANet-ONNX/onnx/model_q4f16.onnx",
-			preprocessorConfigPath: "./models/onnx-community/MVANet-ONNX/preprocessor_config.json",
-		},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			var inferencer Inferencer
-			inferencer, err = NewBEN2Inferencer(
-				tc.modelPath,
-				tc.preprocessorConfigPath,
+			inferencer, err = NewONNXBEN2Inferencer(
+				ONNXSODCommonConfig{
+					ModelPath:              tc.modelPath,
+					PreprocessorConfigPath: tc.preprocessorConfigPath,
+				},
 			)
 			if err != nil {
 				t.Fatalf("failed to create onnx inferencer: %v", err)
@@ -60,7 +47,7 @@ func TestBEN2Inferencer(t *testing.T) {
 				t.Fatalf("failed to open image: %v", err)
 			}
 
-			segments, err := inferencer.SegmentImage(image)
+			segments, err := inferencer.SegmentImage(context.Background(), image)
 			if err != nil {
 				t.Fatalf("failed to segment image: %v", err)
 			}

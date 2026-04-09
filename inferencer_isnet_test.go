@@ -1,21 +1,16 @@
 package cpullmapi
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
-
-	ort "github.com/yalue/onnxruntime_go"
 )
 
 func TestISNetInferencer(t *testing.T) {
-	ort.SetSharedLibraryPath(onnxSharedLibraryPath)
-
-	err := ort.InitializeEnvironment()
-	if err != nil {
-		t.Fatalf("failed to initialize ort environment: %v", err)
-	}
-	defer ort.DestroyEnvironment()
+	var err error
+	cleanup := initORT(t)
+	defer cleanup()
 
 	tcs := []struct {
 		name      string
@@ -30,9 +25,11 @@ func TestISNetInferencer(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			var inferencer Inferencer
-			inferencer, err = NewISNetInferencer(
-				tc.modelPath,
-				"./models/onnx-community/ISNet-ONNX/preprocessor_config.json",
+			inferencer, err = NewONNXISNetInferencer(
+				ONNXSODCommonConfig{
+					ModelPath:              tc.modelPath,
+					PreprocessorConfigPath: "./models/onnx-community/ISNet-ONNX/preprocessor_config.json",
+				},
 			)
 			if err != nil {
 				t.Fatalf("failed to create onnx inferencer: %v", err)
@@ -44,12 +41,30 @@ func TestISNetInferencer(t *testing.T) {
 				t.Fatalf("failed to open image: %v", err)
 			}
 
-			segments, err := inferencer.SegmentImage(image)
+			segments, err := inferencer.SegmentImage(context.Background(), image)
 			if err != nil {
 				t.Fatalf("failed to segment image: %v", err)
 			}
 
 			for i, segment := range segments {
+				// image255, err := image.Copy()
+				// if err != nil {
+				// 	t.Fatalf("failed to copy image: %v", err)
+				// }
+				// err = image255.DrawRect(
+				// 	vips.ColorRGBA{R: 255, G: 255, B: 255, A: 255},
+				// 	0, 0, image255.Width(), image255.Height(), true)
+				// if err != nil {
+				// 	t.Fatalf("failed to draw rect: %v", err)
+				// }
+				// image255.Close()
+
+				image.AddAlpha()
+				err = segment.Multiply(image)
+				if err != nil {
+					t.Fatalf("failed to multiply image: %v", err)
+				}
+
 				bin, _, err := segment.ExportPng(nil)
 				if err != nil {
 					t.Fatalf("failed to export segment: %v", err)

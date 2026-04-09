@@ -1,15 +1,18 @@
 package cpullmapi
 
-func NewISNetInferencer(
-	modelPath string,
-	preprocessorConfigPath string,
+func NewONNXISNetInferencer(
+	config ONNXSODCommonConfig,
 ) (*ONNXSODInferencer, error) {
 	return NewONNXSODInferencer(
-		modelPath,
-		preprocessorConfigPath,
+		config.ModelPath,
+		config.PreprocessorConfigPath,
 		"input",
 		"output",
 		ben2PostprocessFunc,
 		onnxSessionOptions,
 	)
+}
+
+func init() {
+	InferencerFactoryMap["ONNXISNet"] = NewONNXISNetInferencer
 }

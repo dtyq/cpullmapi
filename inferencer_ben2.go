@@ -2,31 +2,16 @@ package cpullmapi
 
 import (
 	"fmt"
-	"image/color"
-
-	goImage "image"
+	"unsafe"
 
 	"github.com/davidbyttow/govips/v2/vips"
 )
 
 func ben2PostprocessFunc(in *ONNXSODInferencer, outputArray []float32) ([]*vips.ImageRef, error) {
-	gim := goImage.NewRGBA(goImage.Rect(0, 0, in.width, in.height))
+	// since we have only one channel, we can directly use the output array as HWC array
 
-	for i := range outputArray {
-		// to uint8
-		outputArray[i] *= 255
-		gim.SetRGBA(
-			i%in.width,
-			i/in.width,
-			color.RGBA{
-				uint8(outputArray[i]),
-				uint8(outputArray[i]),
-				uint8(outputArray[i]),
-				uint8(outputArray[i]),
-			},
-		)
-	}
-	segment, err := vips.NewImageFromGoImage(gim)
+	hwcBytes := unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(outputArray))), len(outputArray)*4)
+	segment, err := vips.NewImageFromHWCArray(hwcBytes, 1, in.width, in.height, vips.BandFormatFloat, vips.InterpretationSRGB)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create image from go image: %v", err)
 	}
@@ -34,16 +19,19 @@ func ben2PostprocessFunc(in *ONNXSODInferencer, outputArray []float32) ([]*vips.
 	return []*vips.ImageRef{segment}, nil
 }
 
-func NewBEN2Inferencer(
-	modelPath string,
-	preprocessorConfigPath string,
+func NewONNXBEN2Inferencer(
+	config ONNXSODCommonConfig,
 ) (*ONNXSODInferencer, error) {
 	return NewONNXSODInferencer(
-		modelPath,
-		preprocessorConfigPath,
+		config.ModelPath,
+		config.PreprocessorConfigPath,
 		"pixel_values",
 		"alphas",
 		ben2PostprocessFunc,
 		onnxSessionOptions,
 	)
+}
+
+func init() {
+	InferencerFactoryMap["ONNXBEN2"] = NewONNXBEN2Inferencer
 }

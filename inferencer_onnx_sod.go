@@ -1,12 +1,16 @@
 package cpullmapi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/davidbyttow/govips/v2/vips"
 	ort "github.com/yalue/onnxruntime_go"
+	"golang.org/x/sys/unix"
+	"gopkg.in/yaml.v3"
 )
 
 type ONNXSODInferencer struct {
@@ -80,7 +84,7 @@ func NewONNXSODInferencer(
 	}, nil
 }
 
-func (in *ONNXSODInferencer) SegmentImage(image *vips.ImageRef) ([]*vips.ImageRef, error) {
+func (in *ONNXSODInferencer) SegmentImage(ctx context.Context, image *vips.ImageRef) ([]*vips.ImageRef, error) {
 	image_, err := image.Copy()
 	if err != nil {
 		return nil, fmt.Errorf("failed to copy image: %v", err)
@@ -94,7 +98,36 @@ func (in *ONNXSODInferencer) SegmentImage(image *vips.ImageRef) ([]*vips.ImageRe
 	inputTensor := in.inputTensors[0].(*ort.Tensor[float32])
 	copy(inputTensor.GetData(), chwArray)
 
-	err = in.session.Run()
+	// create run options
+	ro, err := ort.NewRunOptions()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create run options: %v", err)
+	}
+
+	// create run context
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// create run done channel and wait group
+	runDone := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		select {
+		case <-runCtx.Done():
+			_ = ro.Terminate()
+		case <-runDone:
+		}
+	}()
+
+	defer func() {
+		close(runDone)
+		wg.Wait()
+		_ = ro.Destroy()
+	}()
+
+	err = in.session.RunWithOptions(ro)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run session: %v", err)
 	}
@@ -123,3 +156,37 @@ func (i *ONNXSODInferencer) Close() {
 func (i *ONNXSODInferencer) GetCapabilities() []Capability {
 	return []Capability{CapabilityImageSegmentation}
 }
+
+type ONNXSODCommonConfig struct {
+	ModelPath              string `yaml:"modelPath"`
+	PreprocessorConfigPath string `yaml:"preprocessorConfigPath"`
+}
+
+func (c *ONNXSODCommonConfig) UnmarshalYAML(value *yaml.Node) error {
+	var tmp struct {
+		ModelPath              string `yaml:"modelPath"`
+		PreprocessorConfigPath string `yaml:"preprocessorConfigPath"`
+	}
+	if err := value.Decode(&tmp); err != nil {
+		return err
+	}
+
+	// check if ModelPath and PreprocessorConfigPath are absolute paths
+	if err := unix.Access(tmp.ModelPath, unix.O_RDONLY); err != nil {
+		return fmt.Errorf("model %s must be a regular file: %v", tmp.ModelPath, err)
+	}
+	if err := unix.Access(tmp.PreprocessorConfigPath, unix.O_RDONLY); err != nil {
+		return fmt.Errorf("preprocessor config %s must be a regular file: %v", tmp.PreprocessorConfigPath, err)
+	}
+
+	c.ModelPath = tmp.ModelPath
+	c.PreprocessorConfigPath = tmp.PreprocessorConfigPath
+	return nil
+}
+
+// TODO
+// type ONNXSODConfig struct {
+// 	ONNXSODCommonConfig
+// 	InputName  string `json:"inputName"`
+// 	OutputName string `json:"outputName"`
+// }

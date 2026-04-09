@@ -2,51 +2,44 @@ package cpullmapi
 
 import (
 	"fmt"
-	"image/color"
 	"math"
-
-	goImage "image"
+	"unsafe"
 
 	"github.com/davidbyttow/govips/v2/vips"
 )
 
 func birefnetPostprocessFunc(in *ONNXSODInferencer, outputArray []float32) ([]*vips.ImageRef, error) {
-	gim := goImage.NewRGBA(goImage.Rect(0, 0, in.width, in.height))
+	// since we have only one channel, we can directly use the output array as HWC array
 
-	for i := range outputArray {
-		// sigmoid, mul 255
-		x := float64(outputArray[i])
-		outputArray[i] = float32(1/(1+math.Exp(-x))) * 255
-		// to uint8
-		gim.SetRGBA(
-			i%in.width,
-			i/in.width,
-			color.RGBA{
-				uint8(outputArray[i]),
-				uint8(outputArray[i]),
-				uint8(outputArray[i]),
-				uint8(outputArray[i]),
-			},
-		)
+	var x float64
+	for i := range len(outputArray) {
+		// sigmoid
+		x = float64(outputArray[i])
+		outputArray[i] = float32(1 / (1 + math.Exp(-x)))
 	}
-	segment, err := vips.NewImageFromGoImage(gim)
+	hwcBytes := unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(outputArray))), len(outputArray)*4)
+	fmt.Printf("hwcArray length: %d, hwcBytes length: %d\n", len(outputArray), len(hwcBytes))
+	segment, err := vips.NewImageFromHWCArray(hwcBytes, 3, in.width, in.height, vips.BandFormatFloat, vips.InterpretationSRGB)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create image from go image: %v", err)
+		return nil, fmt.Errorf("failed to create image from array: %v", err)
 	}
 
 	return []*vips.ImageRef{segment}, nil
 }
 
-func NewBiRefNetInferencer(
-	modelPath string,
-	preprocessorConfigPath string,
+func NewONNXBiRefNetInferencer(
+	config ONNXSODCommonConfig,
 ) (*ONNXSODInferencer, error) {
 	return NewONNXSODInferencer(
-		modelPath,
-		preprocessorConfigPath,
+		config.ModelPath,
+		config.PreprocessorConfigPath,
 		"input_image",
 		"output_image",
 		birefnetPostprocessFunc,
 		onnxSessionOptions,
 	)
+}
+
+func init() {
+	InferencerFactoryMap["ONNXBiRefNet"] = NewONNXBiRefNetInferencer
 }

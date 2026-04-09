@@ -86,7 +86,7 @@ func (p ExecutorPool) Stop() {
 }
 
 type Closeable interface {
-	Close() error
+	Close()
 }
 
 type rpStub[T Closeable] struct {
@@ -97,19 +97,19 @@ type rpStub[T Closeable] struct {
 	obj           T
 }
 
-type rpDesc[T Closeable] struct {
-	resourceRequired int
-	objFactory       func() (T, error)
+type RPDesc[T Closeable] struct {
+	ResourceRequired int
+	ObjFactory       func() (T, error)
 }
 
 type ResourcePool[T Closeable] struct {
 	totalResource int
-	availableObjs map[string]rpDesc[T]
+	availableObjs map[string]RPDesc[T]
 	objStubs      []*rpStub[T]
 	mu            sync.Mutex
 }
 
-func NewResourcePool[T Closeable](totalResource int, objFactories map[string]rpDesc[T]) (*ResourcePool[T], error) {
+func NewResourcePool[T Closeable](totalResource int, objFactories map[string]RPDesc[T]) (*ResourcePool[T], error) {
 	if totalResource < 1 {
 		// TODO: better error message using reflection
 		return nil, fmt.Errorf("total memory must be greater than 0")
@@ -137,7 +137,9 @@ func (p *ResourcePool[T]) GetObj(ctx context.Context, name string) (T, error) {
 	existingObjStubIndex := -1
 	for i, objStub := range p.objStubs {
 		if objStub.name == name {
+			// fmt.Fprintf(os.Stderr, "trying to lock %p(%s)\n", objStub, name)
 			if objStub.mu.TryLock() {
+				// fmt.Fprintf(os.Stderr, "locked %p(%s)\n", objStub, name)
 				existingObjStubIndex = i
 				break
 			}
@@ -160,9 +162,11 @@ func (p *ResourcePool[T]) GetObj(ctx context.Context, name string) (T, error) {
 			return obj, ctx.Err()
 		}
 		go func() {
-			defer objStub.mu.Unlock()
 			<-ctx.Done()
+			// fmt.Fprintf(os.Stderr, "release lock for %p(%s)\n", objStub, name)
+			objStub.mu.Unlock()
 		}()
+		// fmt.Fprintf(os.Stderr, "using existing obj %p for %s\n", objStub, name)
 		return objStub.obj, nil
 	}
 	// otherwise, try to create a new obj
@@ -174,7 +178,7 @@ func (p *ResourcePool[T]) GetObj(ctx context.Context, name string) (T, error) {
 	}
 
 	for {
-		if resourceInUse+objDesc.resourceRequired <= p.totalResource {
+		if resourceInUse+objDesc.ResourceRequired <= p.totalResource {
 			// condition met, create new obj
 			break
 		}
@@ -190,16 +194,17 @@ func (p *ResourcePool[T]) GetObj(ctx context.Context, name string) (T, error) {
 		p.objStubs = p.objStubs[:len(p.objStubs)-1]
 		// close the obj
 		objStub.obj.Close()
+		// fmt.Fprintf(os.Stderr, "evicting obj %p(%s) for %s\n", objStub, objStub.name, name)
 		objStub.mu.Unlock()
 	}
 
-	obj, err := objDesc.objFactory()
+	obj, err := objDesc.ObjFactory()
 	if err != nil {
 		return obj, fmt.Errorf("failed to create obj %s: %v", name, err)
 	}
 	newStub := &rpStub[T]{
 		name:          name,
-		resourceUsage: objDesc.resourceRequired,
+		resourceUsage: objDesc.ResourceRequired,
 		obj:           obj,
 	}
 	newStub.mu.Lock()
@@ -209,9 +214,11 @@ func (p *ResourcePool[T]) GetObj(ctx context.Context, name string) (T, error) {
 		return obj, ctx.Err()
 	}
 	go func() {
-		defer newStub.mu.Unlock()
 		<-ctx.Done()
+		// fmt.Fprintf(os.Stderr, "release lock for %p(%s)\n", newStub, name)
+		newStub.mu.Unlock()
 	}()
 	p.objStubs = append([]*rpStub[T]{newStub}, p.objStubs...)
+	// fmt.Fprintf(os.Stderr, "created new obj %p for %s\n", newStub, name)
 	return obj, nil
 }

@@ -16,16 +16,19 @@ func mvanetONNXSessionOptions() (*ort.SessionOptions, error) {
 	return opts, nil
 }
 
-func NewMVANetInferencer(
-	modelPath string,
-	preprocessorConfigPath string,
+func NewONNXMVANetInferencer(
+	config ONNXSODCommonConfig,
 ) (*ONNXSODInferencer, error) {
 	return NewONNXSODInferencer(
-		modelPath,
-		preprocessorConfigPath,
+		config.ModelPath,
+		config.PreprocessorConfigPath,
 		"pixel_values",
 		"alphas",
 		ben2PostprocessFunc,
 		mvanetONNXSessionOptions,
 	)
+}
+
+func init() {
+	InferencerFactoryMap["ONNXMVANet"] = NewONNXMVANetInferencer
 }

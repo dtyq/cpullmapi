@@ -2,6 +2,8 @@ package cpullmapi
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/davidbyttow/govips/v2/vips"
 )
@@ -63,4 +65,41 @@ func inplaceImageToRGBU8Array(image *vips.ImageRef, backgroundColor *vips.Color)
 		return nil, err
 	}
 	return rgbArray, nil
+}
+
+func vipsRGBAFromHTMLHex(str string, rgba *vips.ColorRGBA) error {
+	if strings.HasPrefix(str, "#") {
+		str = str[1:]
+	}
+	if len(str) != 8 && len(str) != 6 {
+		return fmt.Errorf("invalid rgba hex color: %s", str)
+	}
+
+	var err error
+	var u64 uint64
+	u64, err = strconv.ParseUint(str[0:2], 16, 8)
+	if err != nil {
+		return fmt.Errorf("failed to parse rgba hex color: %w", err)
+	}
+	rgba.R = uint8(u64)
+	u64, err = strconv.ParseUint(str[2:4], 16, 8)
+	if err != nil {
+		return fmt.Errorf("failed to parse rgba hex color: %w", err)
+	}
+	rgba.G = uint8(u64)
+	u64, err = strconv.ParseUint(str[4:6], 16, 8)
+	if err != nil {
+		return fmt.Errorf("failed to parse rgba hex color: %w", err)
+	}
+	rgba.B = uint8(u64)
+	if len(str) == 8 {
+		u64, err = strconv.ParseUint(str[6:8], 16, 8)
+		if err != nil {
+			return fmt.Errorf("failed to parse rgba hex color: %w", err)
+		}
+		rgba.A = uint8(u64)
+	} else {
+		rgba.A = 255
+	}
+	return nil
 }
