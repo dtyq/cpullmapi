@@ -57,27 +57,10 @@ const docTemplate = `{
                 "summary": "matting image",
                 "parameters": [
                     {
-                        "enum": [
-                            "image/jpeg",
-                            "image/png",
-                            "image/bmp",
-                            "image/gif",
-                            "image/webp",
-                            "image/tiff",
-                            "image/jp2",
-                            "image/jxl",
-                            "image/heif"
-                        ],
-                        "type": "string",
-                        "description": "input image format, if not set, auto detect from image data",
-                        "name": "Content-Type",
-                        "in": "header"
-                    },
-                    {
                         "type": "string",
                         "description": "model name, for example: MVANet",
-                        "name": "X-Model",
-                        "in": "header",
+                        "name": "modelName",
+                        "in": "formData",
                         "required": true
                     },
                     {
@@ -94,7 +77,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "background color in rgba hex format, for example: #ffffffff, default is #ffffff for white",
+                        "description": "background color in rgba hex format, for example: #ffffffff, default is #ffffff00 for white",
                         "name": "backgroundColor",
                         "in": "formData"
                     }
