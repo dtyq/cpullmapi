@@ -7,7 +7,10 @@ import (
 	"fmt"
 	"io"
 	mathRand "math/rand/v2"
+	"net"
 	"net/http"
+	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -153,6 +156,12 @@ func (c Config) CreateServer() (*Server, error) {
 
 		c.Next()
 	})
+	if s.config.Incoming.ProxyRequestInspector {
+		router.Use(s.proxyRequestInspector)
+	}
+	if len(s.config.Incoming.AllowCIDR) > 0 {
+		router.Use(s.checkCIDR)
+	}
 	router.Use(s.ginLogger)
 
 	// api group
@@ -211,4 +220,152 @@ func (s *Server) Run() error {
 	}
 
 	return nil
+}
+
+func (s *Server) proxyRequestInspector(c *gin.Context) {
+	if c.Request.Method != http.MethodConnect && c.Request.URL.Scheme == "" {
+		c.Next()
+		return
+	}
+
+	requestID := c.GetString(ContextKeyRequestID)
+
+	// do inspect
+	remoteAddress := c.Request.RemoteAddr
+	s.Logd(requestID+"-connect-inspector", "remoteAddr: %s", remoteAddress)
+	for field, values := range c.Request.Header {
+		for i, value := range values {
+			s.Logd(requestID+"-connect-inspector", "header[%d]: %s: %s", i, field, value)
+		}
+	}
+
+	hj, ok := c.Writer.(http.Hijacker)
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"code":    418,
+			"message": "I'm a teapot",
+		})
+		return
+	}
+	conn, _, err := hj.Hijack()
+	if err != nil {
+		return
+	}
+	_ = conn.Close()
+}
+
+var bombs = map[string][]byte{}
+
+func (s *Server) checkCIDR(c *gin.Context) {
+	requestID := c.GetString(ContextKeyRequestID)
+
+	var encodings []string
+	var remoteIP net.IP
+
+	host, _, err := net.SplitHostPort(c.Request.RemoteAddr)
+	if err != nil {
+		goto reset
+	}
+	remoteIP = net.ParseIP(host)
+	for _, cidr := range s.config.Incoming.AllowCIDR {
+		if cidr.Contains(remoteIP) {
+			c.Next()
+			return
+		}
+	}
+	// do inspect
+	s.Logd(requestID+"-compression-bomb", "remoteAddr: %s", c.Request.RemoteAddr)
+	for field, values := range c.Request.Header {
+		for i, value := range values {
+			s.Logd(requestID+"-compression-bomb", "header[%d]: %s: %s", i, field, value)
+		}
+	}
+
+	if c.GetHeader("Accept-Encoding") == "" {
+		goto reset
+	}
+
+	// make compression bombs
+	encodings = strings.Split(c.GetHeader("Accept-Encoding"), ",")
+	// strip spaces
+	for i := range len(encodings) {
+		encodings[i] = strings.TrimSpace(encodings[i])
+	}
+	// sort encodings by dict order
+	sort.Slice(encodings, func(i, j int) bool {
+		dict := map[string]int{
+			"deflate": 4,
+			"gzip":    3,
+			"zstd":    2,
+			"br":      1,
+		}
+		dictI, _ := dict[encodings[i]]
+		dictJ, _ := dict[encodings[j]]
+		return dictI < dictJ
+	})
+	for _, encoding := range encodings {
+		var err error
+		bomb, ok := bombs[encoding]
+		if ok {
+			s.Logd(requestID+"-compression-bomb", "bomb using existing: %s", encoding)
+			c.Header("Content-Type", "text/html")
+			c.Header("Content-Encoding", encoding)
+			c.Header("Content-Length", fmt.Sprintf("%d", len(bomb)))
+			c.Writer.WriteHeader(http.StatusOK)
+			c.Writer.Write(bomb)
+			c.Writer.Flush()
+			c.Abort()
+			return
+		}
+		switch encoding {
+		case "gzip":
+			bomb, err = os.ReadFile("bomb.gzip")
+			if err != nil {
+				continue
+			}
+			bombs[encoding] = bomb
+		case "deflate":
+			bomb, err = os.ReadFile("bomb.deflate")
+			if err != nil {
+				continue
+			}
+			bombs[encoding] = bomb
+		case "br":
+			bomb, err = os.ReadFile("bomb.br")
+			if err != nil {
+				continue
+			}
+			bombs[encoding] = bomb
+		case "zstd":
+			bomb, err = os.ReadFile("bomb.zstd")
+			if err != nil {
+				continue
+			}
+			bombs[encoding] = bomb
+		}
+		s.Logd(requestID+"-compression-bomb", "bomb using new: %s", encoding)
+		c.Header("Content-Type", "text/html")
+		c.Header("Content-Encoding", encoding)
+		c.Header("Content-Length", fmt.Sprintf("%d", len(bomb)))
+		c.Writer.WriteHeader(http.StatusOK)
+		c.Writer.Write(bomb)
+		c.Writer.Flush()
+		c.Abort()
+		return
+	}
+
+reset:
+	hj, ok := c.Writer.(http.Hijacker)
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"code":    418,
+			"message": "I'm a teapot",
+		})
+		return
+	}
+	conn, _, err := hj.Hijack()
+	if err != nil {
+		return
+	}
+	_ = conn.Close()
 }

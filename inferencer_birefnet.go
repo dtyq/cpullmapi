@@ -18,8 +18,7 @@ func birefnetPostprocessFunc(in *ONNXSODInferencer, outputArray []float32) ([]*v
 		outputArray[i] = float32(1 / (1 + math.Exp(-x)))
 	}
 	hwcBytes := unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(outputArray))), len(outputArray)*4)
-	fmt.Printf("hwcArray length: %d, hwcBytes length: %d\n", len(outputArray), len(hwcBytes))
-	segment, err := vips.NewImageFromHWCArray(hwcBytes, 3, in.width, in.height, vips.BandFormatFloat, vips.InterpretationSRGB)
+	segment, err := vips.NewImageFromHWCArray(hwcBytes, 1, in.width, in.height, vips.BandFormatFloat, vips.InterpretationSRGB)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create image from array: %v", err)
 	}

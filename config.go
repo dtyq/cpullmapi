@@ -2,6 +2,7 @@ package cpullmapi
 
 import (
 	"fmt"
+	"net"
 	"reflect"
 	"regexp"
 
@@ -80,6 +81,33 @@ type InferenceConfig struct {
 	ThreadsPerSlot int `yaml:"threadsPerSlot"`
 }
 
+type IncomingConfig struct {
+	ProxyRequestInspector bool         `yaml:"proxyRequestInspector"`
+	AllowCIDR             []*net.IPNet `yaml:"allowCIDR"`
+}
+
+func (c *IncomingConfig) UnmarshalYAML(value *yaml.Node) error {
+	var tmp struct {
+		ProxyRequestInspector bool     `yaml:"proxyRequestInspector"`
+		AllowCIDR             []string `yaml:"allowCIDR"`
+	}
+	if err := value.Decode(&tmp); err != nil {
+		return err
+	}
+
+	c.AllowCIDR = make([]*net.IPNet, len(tmp.AllowCIDR))
+	for i, cidr := range tmp.AllowCIDR {
+		_, ipNet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			return fmt.Errorf("failed to parse CIDR \"%s\": %v", cidr, err)
+		}
+		c.AllowCIDR[i] = ipNet
+	}
+
+	c.ProxyRequestInspector = tmp.ProxyRequestInspector
+	return nil
+}
+
 type OutgoingConfig struct {
 	AllowRegexp []regexp.Regexp `yaml:"allowRegexp"`
 }
@@ -104,6 +132,7 @@ func (c *OutgoingConfig) UnmarshalYAML(value *yaml.Node) error {
 type Config struct {
 	HTTP     HTTPConfig        `yaml:"http"`
 	Logs     []LogStreamConfig `yaml:"logs"`
+	Incoming IncomingConfig    `yaml:"incoming"`
 	Outgoing OutgoingConfig    `yaml:"outgoing"`
 
 	Inference InferenceConfig `yaml:"inference"`

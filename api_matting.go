@@ -13,8 +13,8 @@ import (
 // @Summary matting image
 // @Description matting image, output image format is determined by the Accept header, if accept is not set, use the input image format
 // @Security Token
-// @Produce image/jpeg,image/png,image/bmp,image/gif,image/webp,image/tiff,image/jp2,image/jxl,image/heif
-// @Param X-Model header string true "model name, for example: MVANet"
+// @Produce image/jpeg,image/png,image/bmp,image/gif,image/webp,image/tiff,image/jp2,image/jxl
+// @Param modelName formData string true "model name, for example: MVANet"
 // @Param imageData formData file false "image data in binary, conflicts with imageURL"
 // @Param imageURL formData string false "image url, conflicts with imageData"
 // @Param backgroundColor formData string false "background color in rgba hex format, for example: #ffffffff, default is #ffffff00 for white"
@@ -36,10 +36,9 @@ func (s *Server) mattingHandler(c *gin.Context) {
 	}
 
 	// check model name
-	modelName := c.GetHeader("X-Model")
-	_, ok := s.config.Inference.Models[modelName]
-	if !ok {
-		c.Header("X-Error", "unknown model")
+	modelName := c.PostForm("modelName")
+	if modelName == "" {
+		c.Header("X-Error", "modelName is required")
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
