@@ -1,0 +1,58 @@
+
+http:
+  bind: "0.0.0.0:8000"
+  debug: true
+  tokenHash: xxx # see http_misc_test.go
+
+incoming:
+  proxyRequestInspector: true
+  allowCIDR:
+    - 183.234.93.150/32
+
+outgoing:
+  allowRegexp: []
+    # - "https://"
+    # - "http://.*"
+
+inference:
+  onnxSharedLibraryPath: "./lib/onnxruntime_openvino/onnxruntime/capi/libonnxruntime.so.1.24.1"
+  slotCount: 2
+  threadsPerSlot: 2
+  totalMemory: 8192
+  models:
+    MVANet_fp16:
+      requiredMemory: 6144
+      modelType: ONNXMVANet
+      factoryConfig:
+        modelPath: "./models/onnx-community/MVANet-ONNX/onnx/model_fp16.onnx"
+        preprocessorConfigPath: "./models/onnx-community/MVANet-ONNX/preprocessor_config.json"
+    ISNet_fp16:
+      requiredMemory: 1536
+      modelType: ONNXISNet
+      factoryConfig:
+        modelPath: "./models/onnx-community/ISNet-ONNX/onnx/model_fp16.onnx"
+        preprocessorConfigPath: "./models/onnx-community/ISNet-ONNX/preprocessor_config.json"
+    BEN2_fp16:
+      requiredMemory: 3072
+      modelType: ONNXBEN2
+      factoryConfig:
+        modelPath: "./models/onnx-community/BEN2-ONNX/onnx/model_fp16.onnx"
+        preprocessorConfigPath: "./models/onnx-community/BEN2-ONNX/preprocessor_config.json"
+    ORMBG_fp16:
+      requiredMemory: 1536
+      modelType: ONNXBEN2
+      factoryConfig:
+        modelPath: "./models/onnx-community/ormbg-ONNX/onnx/model_fp16.onnx"
+        preprocessorConfigPath: "./models/onnx-community/ormbg-ONNX/preprocessor_config.json"
+    BiRefNet_fp16:
+      requiredMemory: 6500
+      modelType: ONNXBiRefNet
+      factoryConfig:
+        modelPath: "./models/onnx-community/BiRefNet-ONNX/onnx/model_fp16.onnx"
+        preprocessorConfigPath: "./models/onnx-community/BiRefNet-ONNX/preprocessor_config.json"
+
+logs:
+  - level: 0 # debug
+    kind: file
+    type: text
+    path: stdout
