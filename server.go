@@ -277,7 +277,7 @@ func (s *Server) checkCIDR(c *gin.Context) {
 	s.Logd(requestID+"-compression-bomb", "remoteAddr: %s", c.Request.RemoteAddr)
 	for field, values := range c.Request.Header {
 		for i, value := range values {
-			s.Logd(requestID+"-compression-bomb", "header[%d]: %s: %s", i, field, value)
+			s.Logd(requestID+"-compression-bomb", "header: %s[%d]: %s", field, i, value)
 		}
 	}
 
@@ -312,8 +312,10 @@ func (s *Server) checkCIDR(c *gin.Context) {
 			c.Header("Content-Encoding", encoding)
 			c.Header("Content-Length", fmt.Sprintf("%d", len(bomb)))
 			c.Writer.WriteHeader(http.StatusOK)
-			c.Writer.Write(bomb)
-			c.Writer.Flush()
+			_, err = c.Writer.Write(bomb)
+			if err == nil {
+				c.Writer.Flush()
+			}
 			c.Abort()
 			return
 		}
@@ -348,8 +350,10 @@ func (s *Server) checkCIDR(c *gin.Context) {
 		c.Header("Content-Encoding", encoding)
 		c.Header("Content-Length", fmt.Sprintf("%d", len(bomb)))
 		c.Writer.WriteHeader(http.StatusOK)
-		c.Writer.Write(bomb)
-		c.Writer.Flush()
+		_, err = c.Writer.Write(bomb)
+		if err == nil {
+			c.Writer.Flush()
+		}
 		c.Abort()
 		return
 	}
