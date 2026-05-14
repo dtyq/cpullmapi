@@ -68,9 +68,8 @@ func inplaceImageToRGBU8Array(image *vips.ImageRef, backgroundColor *vips.Color)
 }
 
 func vipsRGBAFromHTMLHex(str string, rgba *vips.ColorRGBA) error {
-	if strings.HasPrefix(str, "#") {
-		str = str[1:]
-	}
+	str = strings.TrimPrefix(str, "#")
+
 	if len(str) != 8 && len(str) != 6 {
 		return fmt.Errorf("invalid rgba hex color: %s", str)
 	}
