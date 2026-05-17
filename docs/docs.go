@@ -51,8 +51,7 @@ const docTemplate = `{
                     "image/webp",
                     "image/tiff",
                     "image/jp2",
-                    "image/jxl",
-                    "image/heif"
+                    "image/jxl"
                 ],
                 "summary": "matting image",
                 "parameters": [
@@ -106,9 +105,87 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/transcribe": {
+            "post": {
+                "security": [
+                    {
+                        "Token": []
+                    }
+                ],
+                "description": "transcribe audio, output text and language,",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "transcribe audio",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "model name, for example: FireRedASR",
+                        "name": "modelName",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "down mix method, for example: average(default), left, right",
+                        "name": "downMixMethod",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "audio data in WAVE format, conflicts with audioURL",
+                        "name": "audioData",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "audio url, conflicts with audioData",
+                        "name": "audioURL",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ASR result",
+                        "schema": {
+                            "$ref": "#/definitions/cpullmapi.ASRResult"
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "headers": {
+                            "X-Error": {
+                                "type": "string",
+                                "description": "error message"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized"
+                    },
+                    "500": {
+                        "description": "internal server error"
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "cpullmapi.ASRResult": {
+            "type": "object",
+            "properties": {
+                "emotion": {
+                    "type": "string"
+                },
+                "lang": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
         "cpullmapi.HTTPCode": {
             "type": "integer",
             "enum": [

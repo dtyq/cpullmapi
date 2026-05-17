@@ -14,6 +14,8 @@ import (
 )
 
 type ONNXSODInferencer struct {
+	DummyInferencer
+
 	session         *ort.AdvancedSession
 	preprocessor    *ViTImageProcessor
 	postprocessFunc imagePostprocessFunc[ONNXSODInferencer]

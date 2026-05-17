@@ -162,11 +162,14 @@ func (c Config) CreateMemoryPool() (*ResourcePool[Inferencer], error) {
 
 func (c Config) MiscInitialize() error {
 	// initialize ort environment
-	ort.SetSharedLibraryPath(c.Inference.ONNXSharedLibraryPath)
+	var err error
+	if c.Inference.ONNXSharedLibraryPath != "" {
+		ort.SetSharedLibraryPath(c.Inference.ONNXSharedLibraryPath)
 
-	err := ort.InitializeEnvironment()
-	if err != nil {
-		return fmt.Errorf("failed to initialize ort environment: %v", err)
+		err = ort.InitializeEnvironment()
+		if err != nil {
+			return fmt.Errorf("failed to initialize ort environment: %v", err)
+		}
 	}
 
 	// initialize vips
@@ -187,6 +190,8 @@ func (c Config) MiscShutdown() {
 	// shutdown vips
 	vips.Shutdown()
 
-	// shutdown ort environment
-	ort.DestroyEnvironment()
+	if c.Inference.ONNXSharedLibraryPath != "" {
+		// shutdown ort environment
+		ort.DestroyEnvironment()
+	}
 }

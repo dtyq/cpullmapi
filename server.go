@@ -171,6 +171,7 @@ func (c Config) CreateServer() (*Server, error) {
 	apiGroup.GET("/healthcheck", s.healthcheck)
 	// inference
 	apiGroup.POST("/matting", s.mattingHandler)
+	apiGroup.POST("/transcribe", s.transcribeHandler)
 
 	// swagger
 	if s.config.HTTP.Debug {
