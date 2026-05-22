@@ -28,7 +28,7 @@ RUN --mount=type=cache,id=go-build-debian-${DEBIAN_VERSION}-${TARGETARCH},target
     GOPROXY=${GOPROXY} \
     go build -o cpullmapi ./cmd && \
     # TODO: build these SOs for ascend NPU
-    cp /go/pkg/mod/github.com/k2-fsa/sherpa-onnx-go-linux@v1.13.2/lib/aarch64-unknown-linux-gnu/*.so /
+    cp /go/pkg/mod/github.com/k2-fsa/sherpa-onnx-go-linux@v1.13.2/lib/$(uname -m)-unknown-linux-gnu/*.so /
 
 ARG DEBIAN_VERSION=trixie
 ARG DOCKERHUB_LIBRARY_IMAGE_PREFIX=public.ecr.aws/docker/library/
