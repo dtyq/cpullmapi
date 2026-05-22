@@ -24,7 +24,7 @@ type Inferencer interface {
 
 	SegmentImage(ctx context.Context, image *vips.ImageRef) ([]*vips.ImageRef, error)
 
-	Transcribe(ctx context.Context, samples []float32) (result ASRResult, err error)
+	Transcribe(ctx context.Context, samples []float32, hotwords string) (result ASRResult, err error)
 
 	Close()
 }
@@ -44,7 +44,7 @@ func (i *DummyInferencer) SegmentImage(ctx context.Context, image *vips.ImageRef
 	return nil, ErrNotImplemented
 }
 
-func (i *DummyInferencer) Transcribe(ctx context.Context, samples []float32) (result ASRResult, err error) {
+func (i *DummyInferencer) Transcribe(ctx context.Context, samples []float32, hotwords string) (result ASRResult, err error) {
 	return ASRResult{}, ErrNotImplemented
 }
 

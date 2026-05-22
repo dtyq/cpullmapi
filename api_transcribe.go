@@ -21,6 +21,7 @@ import (
 // @Produce application/json
 // @Param modelName formData string true "model name, for example: FireRedASR"
 // @Param downMixMethod formData string false "down mix method, for example: average(default), left, right"
+// @Param hotwords formData string false "hotwords, separated by comma"
 // @Param audioData formData file false "audio data in WAVE format, conflicts with audioURL"
 // @Param audioURL formData string false "audio url, conflicts with audioData"
 // @Success 200 {object} ASRResult "ASR result"
@@ -47,6 +48,10 @@ func (s *Server) transcribeHandler(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
+
+	// check model name
+	hotwords := c.PostForm("hotwords")
+	hotwords = strings.TrimSpace(hotwords)
 
 	// down mix method
 	downMixMethod := c.PostForm("downMixMethod")
@@ -191,7 +196,7 @@ func (s *Server) transcribeHandler(c *gin.Context) {
 		float32Samples := beepConvertSamplesToFloat32Array(streamer)
 
 		// transcribe
-		result, err := inferencer.Transcribe(c.Request.Context(), float32Samples)
+		result, err := inferencer.Transcribe(c.Request.Context(), float32Samples, hotwords)
 		if err != nil {
 			s.Logw("transcribe", "failed to transcribe: %v", err)
 			close(channel)

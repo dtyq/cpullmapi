@@ -40,12 +40,20 @@ func (i *SherpaONNXOfflineASRInferencer) GetCapabilities() []Capability {
 	return []Capability{CapabilityOfflineASR}
 }
 
-func (i *SherpaONNXOfflineASRInferencer) Transcribe(ctx context.Context, samples []float32) (result ASRResult, err error) {
+func (i *SherpaONNXOfflineASRInferencer) Transcribe(
+	ctx context.Context,
+	samples []float32,
+	hotwords string,
+) (result ASRResult, err error) {
 	stream := sherpa_onnx.NewOfflineStream(i.recognizer)
 	if stream == nil {
 		return ASRResult{}, fmt.Errorf("failed to create stream")
 	}
 	defer sherpa_onnx.DeleteOfflineStream(stream)
+
+	if hotwords != "" && stream.HasOption("hotwords") {
+		stream.SetOption("hotwords", hotwords)
+	}
 
 	stream.AcceptWaveform(i.sampleRate, samples)
 	i.recognizer.Decode(stream)

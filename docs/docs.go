@@ -133,6 +133,12 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
+                        "type": "string",
+                        "description": "hotwords, separated by comma",
+                        "name": "hotwords",
+                        "in": "formData"
+                    },
+                    {
                         "type": "file",
                         "description": "audio data in WAVE format, conflicts with audioURL",
                         "name": "audioData",
