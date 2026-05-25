@@ -3,6 +3,7 @@ module github.com/dtyq/cpullmapi
 go 1.25.7
 
 require (
+	github.com/CrispStrobe/CrispASR/bindings/go v0.0.0-20260524205546-4fda4be53bd6
 	github.com/davidbyttow/govips/v2 v2.18.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/gopxl/beep/v2 v2.1.1
