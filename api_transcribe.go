@@ -1,6 +1,9 @@
+//go:build with_audio
+
 package cpullmapi
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -169,23 +172,23 @@ func (s *Server) transcribeHandler(c *gin.Context) {
 
 	channel := make(chan ASRResult)
 	s.executorPool.Dispatch(func() {
-		inferencer, err := s.memoryPool.GetObj(c.Request.Context(), modelName)
+		_inferencer, err := s.memoryPool.GetObj(c.Request.Context(), modelName)
 		if err != nil {
 			s.Logw("matting", "failed to get inferencer: %v", err)
 			close(channel)
 			return
 		}
 
-		sampleRater, ok := inferencer.(SampleRater)
+		inferencer, ok := _inferencer.(OfflineASRInferencer)
 		if !ok {
 			// what the fuck?
-			s.Logw("transcribe", "inferencer does not implement SampleRater interface")
-			c.Header("X-Error", "inferencer does not implement SampleRater interface")
+			s.Logw("transcribe", "inferencer does not implement OfflineASRInferencer interface (model %s does not support offline ASR)", modelName)
+			c.Header("X-Error", fmt.Sprintf("inferencer does not implement OfflineASRInferencer interface (model %s does not support offline ASR)", modelName))
 			c.AbortWithStatus(http.StatusInternalServerError)
 			close(channel)
 			return
 		}
-		sampleRate := sampleRater.SampleRate()
+		sampleRate := inferencer.SampleRate()
 
 		if format.SampleRate != beep.SampleRate(sampleRate) {
 			// do SRC
@@ -193,7 +196,7 @@ func (s *Server) transcribeHandler(c *gin.Context) {
 		}
 
 		// convert to []float32 for transcribe
-		float32Samples := beepConvertSamplesToFloat32Array(streamer)
+		float32Samples := BeepConvertSamplesToFloat32Array(streamer)
 
 		// transcribe
 		result, err := inferencer.Transcribe(c.Request.Context(), float32Samples, hotwords)

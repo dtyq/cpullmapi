@@ -5,14 +5,12 @@ import (
 	"fmt"
 
 	"github.com/k2-fsa/sherpa-onnx-go/sherpa_onnx"
+
+	core "github.com/dtyq/cpullmapi"
 )
 
-type SampleRater interface {
-	SampleRate() int
-}
-
 type SherpaONNXOfflineASRInferencer struct {
-	DummyInferencer
+	core.OfflineASRInferencer
 
 	recognizer *sherpa_onnx.OfflineRecognizer
 	sampleRate int
@@ -36,18 +34,18 @@ func (i *SherpaONNXOfflineASRInferencer) Close() {
 	sherpa_onnx.DeleteOfflineRecognizer(i.recognizer)
 }
 
-func (i *SherpaONNXOfflineASRInferencer) GetCapabilities() []Capability {
-	return []Capability{CapabilityOfflineASR}
+func (i *SherpaONNXOfflineASRInferencer) GetCapabilities() []core.Capability {
+	return []core.Capability{core.CapabilityOfflineASR}
 }
 
 func (i *SherpaONNXOfflineASRInferencer) Transcribe(
 	ctx context.Context,
 	samples []float32,
 	hotwords string,
-) (result ASRResult, err error) {
+) (result core.ASRResult, err error) {
 	stream := sherpa_onnx.NewOfflineStream(i.recognizer)
 	if stream == nil {
-		return ASRResult{}, fmt.Errorf("failed to create stream")
+		return core.ASRResult{}, fmt.Errorf("failed to create stream")
 	}
 	defer sherpa_onnx.DeleteOfflineStream(stream)
 
@@ -58,7 +56,7 @@ func (i *SherpaONNXOfflineASRInferencer) Transcribe(
 	stream.AcceptWaveform(i.sampleRate, samples)
 	i.recognizer.Decode(stream)
 	ret := stream.GetResult()
-	return ASRResult{
+	return core.ASRResult{
 		Text:    ret.Text,
 		Lang:    ret.Lang,
 		Emotion: ret.Emotion,
@@ -70,5 +68,5 @@ func (i *SherpaONNXOfflineASRInferencer) SampleRate() int {
 }
 
 func init() {
-	InferencerFactoryMap["SherpaONNXOfflineASR"] = NewSherpaONNXOfflineASRInferencer
+	core.InferencerFactoryMap["SherpaONNXOfflineASR"] = NewSherpaONNXOfflineASRInferencer
 }

@@ -6,6 +6,9 @@ import (
 	"os"
 
 	"github.com/dtyq/cpullmapi"
+	_ "github.com/dtyq/cpullmapi/backends/crispasr"
+	_ "github.com/dtyq/cpullmapi/backends/onnx"
+	_ "github.com/dtyq/cpullmapi/backends/sherpa_onnx"
 )
 
 func main() {

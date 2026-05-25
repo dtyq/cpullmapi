@@ -1,13 +1,15 @@
-package cpullmapi
+package onnx
 
 import (
 	"fmt"
 
 	ort "github.com/yalue/onnxruntime_go"
+
+	core "github.com/dtyq/cpullmapi"
 )
 
 // TODO: configurable
-func onnxSessionOptions() (*ort.SessionOptions, error) {
+func defaultONNXSessionOptions() (*ort.SessionOptions, error) {
 	opts, err := ort.NewSessionOptions()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session options: %v", err)
@@ -36,3 +38,28 @@ func onnxSessionOptions() (*ort.SessionOptions, error) {
 }
 
 type ortSessionOptionsFunc func() (*ort.SessionOptions, error)
+
+func init() {
+	core.ConfigInitFuncs = append(core.ConfigInitFuncs, func(c *core.Config) error {
+		var err error
+
+		// initialize ort environment
+		if c.Inference.ONNXSharedLibraryPath != "" {
+			ort.SetSharedLibraryPath(c.Inference.ONNXSharedLibraryPath)
+
+			err = ort.InitializeEnvironment()
+			if err != nil {
+				return fmt.Errorf("failed to initialize ort environment: %v", err)
+			}
+		}
+
+		return err
+	})
+
+	core.ConfigShutdownFuncs = append(core.ConfigShutdownFuncs, func(c *core.Config) {
+		if c.Inference.ONNXSharedLibraryPath != "" {
+			// shutdown ort environment
+			ort.DestroyEnvironment()
+		}
+	})
+}

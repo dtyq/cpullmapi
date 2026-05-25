@@ -1,6 +1,9 @@
+//go:build with_image
+
 package cpullmapi
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 
@@ -176,9 +179,18 @@ func (s *Server) mattingHandler(c *gin.Context) {
 	// do inference
 	channel := make(chan *vips.ImageRef)
 	s.executorPool.Dispatch(func() {
-		inferencer, err := s.memoryPool.GetObj(c.Request.Context(), modelName)
+		_inferencer, err := s.memoryPool.GetObj(c.Request.Context(), modelName)
 		if err != nil {
 			s.Logw("matting", "failed to get inferencer: %v", err)
+			close(channel)
+			return
+		}
+
+		inferencer, ok := _inferencer.(ImageSegmentationInferencer)
+		if !ok {
+			s.Logw("matting", "inferencer does not implement ImageSegmentationInferencer interface (model %s does not support image segmentation)", modelName)
+			c.Header("X-Error", fmt.Sprintf("inferencer does not implement ImageSegmentationInferencer interface (model %s does not support image segmentation)", modelName))
+			c.AbortWithStatus(http.StatusInternalServerError)
 			close(channel)
 			return
 		}
@@ -224,7 +236,7 @@ func (s *Server) mattingHandler(c *gin.Context) {
 	// 	return
 	// }
 	// resize segment to image size
-	err = inplaceResizeImage(segment, image.Width(), image.Height(), PILResampleMethodBilinear)
+	err = InplaceResizeImage(segment, image.Width(), image.Height(), PILResampleMethodBilinear)
 	if err != nil {
 		s.Logw("matting", "failed to resize segment: %v", err)
 		c.Header("X-Error", "failed to resize segment")

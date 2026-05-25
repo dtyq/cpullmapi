@@ -1,4 +1,4 @@
-package cpullmapi
+package onnx
 
 import (
 	"context"
@@ -11,14 +11,16 @@ import (
 	ort "github.com/yalue/onnxruntime_go"
 	"golang.org/x/sys/unix"
 	"gopkg.in/yaml.v3"
+
+	core "github.com/dtyq/cpullmapi"
 )
 
 type ONNXSODInferencer struct {
-	DummyInferencer
+	core.ImageSegmentationInferencer
 
 	session         *ort.AdvancedSession
-	preprocessor    *ViTImageProcessor
-	postprocessFunc imagePostprocessFunc[ONNXSODInferencer]
+	preprocessor    *core.ViTImageProcessor
+	postprocessFunc core.ImagePostprocessFunc[ONNXSODInferencer]
 	inputTensors    []ort.Value
 	outputTensors   []ort.Value
 
@@ -31,21 +33,21 @@ func NewONNXSODInferencer(
 	preprocessorConfigPath string,
 	inputName string,
 	outputName string,
-	postprocessFunc imagePostprocessFunc[ONNXSODInferencer],
-	sessionOptionsFunc ortSessionOptionsFunc,
+	postprocessFunc core.ImagePostprocessFunc[ONNXSODInferencer],
+	sessionOptionsFunc core.ORTSessionOptionsFunc,
 ) (*ONNXSODInferencer, error) {
 	var err error
 	preProcesserConfigJSON, err := os.ReadFile(preprocessorConfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read preprocessor config: %v", err)
 	}
-	var preProcesserConfig ViTImageProcessorConfig
+	var preProcesserConfig core.ViTImageProcessorConfig
 	err = json.Unmarshal(preProcesserConfigJSON, &preProcesserConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal image processor config: %v", err)
 	}
 
-	preprocessor, err := NewViTImageProcessor(preProcesserConfig)
+	preprocessor, err := core.NewViTImageProcessor(preProcesserConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create image processor: %v", err)
 	}
@@ -143,7 +145,7 @@ func (in *ONNXSODInferencer) SegmentImage(ctx context.Context, image *vips.Image
 	}
 
 	// since we have only one segment, just inplace resize it to the original image size
-	err = inplaceResizeImage(segments[0], image.Width(), image.Height(), PILResampleMethodBilinear)
+	err = core.InplaceResizeImage(segments[0], image.Width(), image.Height(), core.PILResampleMethodBilinear)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resize segment: %v", err)
 	}
@@ -155,8 +157,8 @@ func (i *ONNXSODInferencer) Close() {
 	i.session.Destroy() // best effort, no error checking
 }
 
-func (i *ONNXSODInferencer) GetCapabilities() []Capability {
-	return []Capability{CapabilityImageSegmentation}
+func (i *ONNXSODInferencer) GetCapabilities() []core.Capability {
+	return []core.Capability{core.CapabilityImageSegmentation}
 }
 
 type ONNXSODCommonConfig struct {

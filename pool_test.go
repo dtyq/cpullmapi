@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	ort "github.com/yalue/onnxruntime_go"
 )
 
 func TestExecutorPool(t *testing.T) {
@@ -24,47 +23,11 @@ func TestExecutorPool(t *testing.T) {
 	}
 	defer pool.Stop()
 
-	ort.SetSharedLibraryPath(onnxSharedLibraryPath)
-
-	err = ort.InitializeEnvironment()
-	if err != nil {
-		t.Fatalf("failed to initialize ort environment: %v", err)
-	}
-	defer ort.DestroyEnvironment()
-
 	var wg sync.WaitGroup
 	wg.Add(1)
 	testFunc := func() {
 		defer wg.Done()
-
-		var inferencer Inferencer
-		inferencer, err = NewONNXBiRefNetInferencer(
-			ONNXSODCommonConfig{
-				ModelPath:              "./models/onnx-community/BiRefNet-ONNX/onnx/model_fp16.onnx",
-				PreprocessorConfigPath: "./models/onnx-community/BiRefNet-ONNX/preprocessor_config.json",
-			},
-		)
-		if err != nil {
-			t.Fatalf("failed to create onnx inferencer: %v", err)
-		}
-		defer inferencer.Close()
-
-		image, err := openImage("test/testphoto.jpg")
-		if err != nil {
-			t.Fatalf("failed to open image: %v", err)
-		}
-
-		segments, err := inferencer.SegmentImage(context.Background(), image)
-		if err != nil {
-			t.Fatalf("failed to segment image: %v", err)
-		}
-
-		for _, segment := range segments {
-			_, _, err := segment.ExportPng(nil)
-			if err != nil {
-				t.Fatalf("failed to export segment: %v", err)
-			}
-		}
+		time.Sleep(1 * time.Millisecond)
 	}
 
 	pool.Dispatch(testFunc)

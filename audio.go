@@ -1,3 +1,5 @@
+//go:build with_audio
+
 package cpullmapi
 
 import (
@@ -15,6 +17,13 @@ const (
 type BeepDownMixer struct {
 	source        beep.Streamer
 	downMixMethod DownMixMethod
+}
+
+func NewBeepDownMixer(source beep.Streamer, method DownMixMethod) *BeepDownMixer {
+	return &BeepDownMixer{
+		source:        source,
+		downMixMethod: method,
+	}
 }
 
 func (d *BeepDownMixer) Stream(samples [][2]float64) (n int, ok bool) {
@@ -47,7 +56,7 @@ func (d *BeepDownMixer) Err() error {
 
 const beepConvertSamples = 4096
 
-func beepConvertSamplesToFloat32Array(streamer beep.Streamer) []float32 {
+func BeepConvertSamplesToFloat32Array(streamer beep.Streamer) []float32 {
 	length := 0
 	bufs := [][][2]float64{}
 	for {

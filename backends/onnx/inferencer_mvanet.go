@@ -1,11 +1,13 @@
-package cpullmapi
+package onnx
 
 import (
 	ort "github.com/yalue/onnxruntime_go"
+
+	core "github.com/dtyq/cpullmapi"
 )
 
 func mvanetONNXSessionOptions() (*ort.SessionOptions, error) {
-	opts, err := onnxSessionOptions()
+	opts, err := core.DefaultONNXSessionOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -30,5 +32,5 @@ func NewONNXMVANetInferencer(
 }
 
 func init() {
-	InferencerFactoryMap["ONNXMVANet"] = NewONNXMVANetInferencer
+	core.InferencerFactoryMap["ONNXMVANet"] = NewONNXMVANetInferencer
 }

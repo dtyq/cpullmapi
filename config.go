@@ -7,7 +7,6 @@ import (
 	"regexp"
 
 	"github.com/davidbyttow/govips/v2/vips"
-	ort "github.com/yalue/onnxruntime_go"
 	"gopkg.in/yaml.v3"
 )
 
@@ -160,38 +159,23 @@ func (c Config) CreateMemoryPool() (*ResourcePool[Inferencer], error) {
 	return NewResourcePool(c.Inference.TotalMemory, inferencerDescs)
 }
 
-func (c Config) MiscInitialize() error {
-	// initialize ort environment
-	var err error
-	if c.Inference.ONNXSharedLibraryPath != "" {
-		ort.SetSharedLibraryPath(c.Inference.ONNXSharedLibraryPath)
+var ConfigInitFuncs = []func(*Config) error{}
 
-		err = ort.InitializeEnvironment()
+func (c Config) MiscInitialize() error {
+	var err error
+	for _, initFunc := range ConfigInitFuncs {
+		err = initFunc(&c)
 		if err != nil {
-			return fmt.Errorf("failed to initialize ort environment: %v", err)
+			return fmt.Errorf("failed to run config init func: %v", err)
 		}
 	}
-
-	// initialize vips
-	vips.LoggingSettings(func(messageDomain string, messageLevel vips.LogLevel, message string) {
-		// empty implementation to omit startup logs
-	}, c.Inference.VIPSLoggingLevel)
-	err = vips.Startup(&vips.Config{
-		ConcurrencyLevel: c.Inference.ThreadsPerSlot,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to initialize vips: %v", err)
-	}
-
 	return nil
 }
 
-func (c Config) MiscShutdown() {
-	// shutdown vips
-	vips.Shutdown()
+var ConfigShutdownFuncs = []func(*Config){}
 
-	if c.Inference.ONNXSharedLibraryPath != "" {
-		// shutdown ort environment
-		ort.DestroyEnvironment()
+func (c Config) MiscShutdown() {
+	for _, shutdownFunc := range ConfigShutdownFuncs {
+		shutdownFunc(&c)
 	}
 }

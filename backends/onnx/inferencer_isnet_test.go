@@ -1,10 +1,12 @@
-package cpullmapi
+package onnx
 
 import (
 	"context"
 	"fmt"
 	"os"
 	"testing"
+
+	core "github.com/dtyq/cpullmapi"
 )
 
 func TestISNetInferencer(t *testing.T) {
@@ -24,7 +26,7 @@ func TestISNetInferencer(t *testing.T) {
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			var inferencer Inferencer
+			var inferencer core.ImageSegmentationInferencer
 			inferencer, err = NewONNXISNetInferencer(
 				ONNXSODCommonConfig{
 					ModelPath:              tc.modelPath,

@@ -1,4 +1,6 @@
-package cpullmapi
+package onnx
+
+import core "github.com/dtyq/cpullmapi"
 
 func NewONNXISNetInferencer(
 	config ONNXSODCommonConfig,
@@ -9,10 +11,10 @@ func NewONNXISNetInferencer(
 		"input",
 		"output",
 		ben2PostprocessFunc,
-		onnxSessionOptions,
+		core.DefaultONNXSessionOptions,
 	)
 }
 
 func init() {
-	InferencerFactoryMap["ONNXISNet"] = NewONNXISNetInferencer
+	core.InferencerFactoryMap["ONNXISNet"] = NewONNXISNetInferencer
 }

@@ -62,8 +62,8 @@ tokenHash: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 }
 
 func TestModelConfig(t *testing.T) {
-	cleanup := initORT(t)
-	defer cleanup()
+	// cleanup := initORT(t)
+	// defer cleanup()
 	tmpDir := t.TempDir()
 
 	tcs := []struct {
@@ -148,8 +148,8 @@ factoryConfig:
 
 func TestConfigCreateMemoryPool(t *testing.T) {
 	var err error
-	cleanup := initORT(t)
-	defer cleanup()
+	// cleanup := initORT(t)
+	// defer cleanup()
 
 	configStr := `
 http:

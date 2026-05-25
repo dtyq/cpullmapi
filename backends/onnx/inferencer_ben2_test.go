@@ -1,10 +1,12 @@
-package cpullmapi
+package onnx
 
 import (
 	"context"
 	"fmt"
 	"os"
 	"testing"
+
+	core "github.com/dtyq/cpullmapi"
 )
 
 func TestBEN2Inferencer(t *testing.T) {
@@ -30,7 +32,7 @@ func TestBEN2Inferencer(t *testing.T) {
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			var inferencer Inferencer
+			var inferencer core.ImageSegmentationInferencer
 			inferencer, err = NewONNXBEN2Inferencer(
 				ONNXSODCommonConfig{
 					ModelPath:              tc.modelPath,

@@ -44,22 +44,21 @@ func (p ExecutorPool) Start(threads int) error {
 	if threads < 1 || threads > numCPU {
 		return fmt.Errorf("threads must be between 1 and %d", numCPU)
 	}
-	cpuIndexStep := numCPU / len(p)
-	if cpuIndexStep == 0 {
-		cpuIndexStep = 1
-	}
+	cpuIndex := 0
 
-	for i, ch := range p {
-		go func(ch chan TaskFunc, startCPUIndex int) {
+	for _, ch := range p {
+		cpuSet := unix.CPUSet{}
+		for range threads {
+			cpuIndex = (cpuIndex + 1) % numCPU
+			cpuSet.Set(cpuIndex)
+		}
+
+		go func(ch chan TaskFunc, cpuSet unix.CPUSet) {
 			runtime.LockOSThread()
 			defer runtime.UnlockOSThread()
 
 			// set affinity
-			cpuSet := unix.CPUSet{}
-			for j := range threads {
-				// fmt.Printf("setting %d affinity to %d\n", unix.Gettid(), (startCPUIndex+cpuIndexStep*j)%numCPU)
-				cpuSet.Set((startCPUIndex + cpuIndexStep*j) % numCPU)
-			}
+			// fmt.Printf("setting %d affinity to %v\n", unix.Gettid(), cpuSet)
 			err := unix.SchedSetaffinity(unix.Gettid(), &cpuSet)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "failed to set affinity for thread %d: %v", unix.Gettid(), err)
@@ -73,7 +72,7 @@ func (p ExecutorPool) Start(threads int) error {
 				}
 				task()
 			}
-		}(ch, i)
+		}(ch, cpuSet)
 	}
 
 	return nil

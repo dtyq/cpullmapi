@@ -1,10 +1,12 @@
-package cpullmapi
+package onnx
 
 import (
 	"context"
 	"fmt"
 	"os"
 	"testing"
+
+	core "github.com/dtyq/cpullmapi"
 )
 
 func TestBiRefNetInferencer(t *testing.T) {
@@ -21,7 +23,7 @@ func TestBiRefNetInferencer(t *testing.T) {
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			var inferencer Inferencer
+			var inferencer core.ImageSegmentationInferencer
 			inferencer, err = NewONNXBiRefNetInferencer(
 				ONNXSODCommonConfig{
 					ModelPath:              tc.modelPath,
