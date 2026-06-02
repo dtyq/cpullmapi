@@ -308,7 +308,7 @@ static LCCErrorCode qwen3ASRRtrimSymbols(
     int32_t endIndex;
     char pieceBuf[4096];
 
-    *pNTokens -= (*pNTokens > rTrimSymbols) ? rTrimSymbols : *pNTokens; // force remove at most rTrimSymbols tokens
+    *pNTokens -= ((*pNTokens) > rTrimSymbols) ? rTrimSymbols : (*pNTokens); // force remove at most rTrimSymbols tokens
 
     // strip tokens ends with symbols from the end
     for (endIndex = (*pNTokens) - 1; endIndex >= 0; endIndex--) {
@@ -373,7 +373,7 @@ LCCErrorCode LCCStreamingASRQwen3ASRSetPrompt(
     const struct llama_vocab *vocab = llama_model_get_vocab(lccCtx->model);
     int32_t nTokens;
     llama_token *tokens = NULL;
-    nTokens = llama_tokenize(vocab, newPrompt, (int32_t)sizeNewPrompt, NULL, 0, false, true); 
+    nTokens = llama_tokenize(vocab, newPrompt, (int32_t)sizeNewPrompt, NULL, 0, false, true);
     // if (nTokens == 0) {
     //     ret = LCC_ERROR_FAILED_TOKENIZE;
     //     goto end;

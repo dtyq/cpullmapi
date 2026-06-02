@@ -37,6 +37,9 @@ func SetLlamaLogFunc(fn func(level GGMLLogLevel, text string)) error {
 	}
 	if !gatewaySet {
 		C.llama_log_set((C.ggml_log_callback)(unsafe.Pointer(C.lccLogCallbackGateway)), nil)
+		C.mtmd_log_set((C.ggml_log_callback)(unsafe.Pointer(C.lccLogCallbackGateway)), nil)
+		C.mtmd_helper_log_set((C.ggml_log_callback)(unsafe.Pointer(C.lccLogCallbackGateway)), nil)
+		gatewaySet = true
 		gatewaySet = true
 	}
 	logCallback = fn

@@ -24,6 +24,9 @@ func LoadLibrary(libllamaPath, libmtmdPath string) error {
 	if errCode := C.LCCLoadLibrary(cLibllamaPath, cLibmtmdPath); errCode != C.LCC_ERROR_SUCCESS {
 		return ErrorCode(errCode)
 	}
+
+	C.llama_backend_init()
+
 	libraryLoaded = true
 	return nil
 }

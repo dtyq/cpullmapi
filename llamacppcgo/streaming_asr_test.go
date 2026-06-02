@@ -59,6 +59,14 @@ func TestQwen3ASR(t *testing.T) {
 		t.FailNow()
 	}
 
+	SetLlamaLogFunc(func(level GGMLLogLevel, text string) {
+		if level < GGML_LOG_LEVEL_WARN {
+			return
+		}
+		os.Stderr.WriteString(text)
+		os.Stderr.Sync()
+	})
+
 	ngl := int32(64)
 	nctx := uint32(4096)
 	lccSess, err := NewSession(SessionConfig{
@@ -88,8 +96,9 @@ func TestQwen3ASR(t *testing.T) {
 		t.FailNow()
 	}
 
+	var lang, text string
 	for sampleChunk := range slices.Chunk(samples, chunkSize) {
-		lang, text, err := sess.FeedAudioSamples(sampleChunk, 4)
+		lang, text, err = sess.FeedAudioSamples(sampleChunk, 4)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}

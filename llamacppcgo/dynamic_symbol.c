@@ -39,6 +39,7 @@ __asm__( \
 #endif
 
 STUB(llama_log_set)
+STUB(llama_backend_init)
 STUB(llama_get_memory)
 STUB(llama_memory_seq_rm)
 STUB(llama_memory_seq_add)
@@ -71,6 +72,7 @@ STUB(llama_sampler_accept)
 STUB(llama_sampler_free)
 STUB(llama_decode)
 STUB(llama_free)
+STUB(mtmd_log_set)
 STUB(mtmd_context_params_default)
 STUB(mtmd_init_from_file)
 STUB(mtmd_tokenize)
@@ -84,6 +86,7 @@ STUB(mtmd_input_chunk_get_type)
 STUB(mtmd_input_chunk_get_n_tokens)
 STUB(mtmd_free)
 STUB(mtmd_default_marker)
+STUB(mtmd_helper_log_set)
 STUB(mtmd_helper_eval_chunks)
 STUB(mtmd_helper_eval_chunk_single)
 
@@ -119,6 +122,7 @@ LCCErrorCode LCCLoadLibrary(const char *libllamaPath, const char *libmtmdPath)
     } while (0)
 
     LOAD_SYMBOL(llama_log_set, libllama);
+    LOAD_SYMBOL(llama_backend_init, libllama);
     LOAD_SYMBOL(llama_get_memory, libllama);
     LOAD_SYMBOL(llama_memory_seq_rm, libllama);
     LOAD_SYMBOL(llama_memory_seq_add, libllama);
@@ -151,6 +155,7 @@ LCCErrorCode LCCLoadLibrary(const char *libllamaPath, const char *libmtmdPath)
     LOAD_SYMBOL(llama_sampler_free, libllama);
     LOAD_SYMBOL(llama_decode, libllama);
     LOAD_SYMBOL(llama_free, libllama);
+    LOAD_SYMBOL(mtmd_log_set, libmtmd);
     LOAD_SYMBOL(mtmd_context_params_default, libmtmd);
     LOAD_SYMBOL(mtmd_init_from_file, libmtmd);
     LOAD_SYMBOL(mtmd_tokenize, libmtmd);
@@ -164,6 +169,7 @@ LCCErrorCode LCCLoadLibrary(const char *libllamaPath, const char *libmtmdPath)
     LOAD_SYMBOL(mtmd_input_chunk_get_n_tokens, libmtmd);
     LOAD_SYMBOL(mtmd_free, libmtmd);
     LOAD_SYMBOL(mtmd_default_marker, libmtmd);
+    LOAD_SYMBOL(mtmd_helper_log_set, libmtmd);
     LOAD_SYMBOL(mtmd_helper_eval_chunks, libmtmd);
     LOAD_SYMBOL(mtmd_helper_eval_chunk_single, libmtmd);
 
