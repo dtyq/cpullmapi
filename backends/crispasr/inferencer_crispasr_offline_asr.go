@@ -10,11 +10,12 @@ import (
 )
 
 type CrispASROfflineASRInferencer struct {
-	core.OfflineASRInferencer
-
 	session    *crispasr.CrispasrSession
 	sampleRate int
 }
+
+// static assert the inferencer
+var _ core.OfflineASRInferencer = (*CrispASROfflineASRInferencer)(nil)
 
 type OfflineASRConfig struct {
 	ModelPath        string  `json:"modelPath" yaml:"modelPath"`

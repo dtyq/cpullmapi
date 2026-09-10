@@ -10,11 +10,12 @@ import (
 )
 
 type SherpaONNXOfflineASRInferencer struct {
-	core.OfflineASRInferencer
-
 	recognizer *sherpa_onnx.OfflineRecognizer
 	sampleRate int
 }
+
+// static assert the inferencer
+var _ core.OfflineASRInferencer = (*SherpaONNXOfflineASRInferencer)(nil)
 
 func NewSherpaONNXOfflineASRInferencer(
 	modelConfig sherpa_onnx.OfflineRecognizerConfig,

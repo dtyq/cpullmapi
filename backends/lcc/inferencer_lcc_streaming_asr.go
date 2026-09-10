@@ -23,8 +23,6 @@ type StreamingASRConfig struct {
 }
 
 type LCCStreamingASRInferencer struct {
-	core.StreamingASRInferencer
-
 	session      *llamacppcgo.Session
 	asrSession   *llamacppcgo.Qwen3ASRSession
 	systemPrompt string
@@ -34,6 +32,9 @@ type LCCStreamingASRInferencer struct {
 	mu         sync.Mutex
 	streamOpen bool
 }
+
+// static assert the inferencer
+var _ core.StreamingASRInferencer = (*LCCStreamingASRInferencer)(nil)
 
 func NewLCCStreamingASRInferencer(config StreamingASRConfig) (*LCCStreamingASRInferencer, error) {
 	if err := llamacppcgo.LoadLibrary(config.LibllamaPath, config.LibmtmdPath); err != nil {

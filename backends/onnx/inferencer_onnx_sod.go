@@ -16,8 +16,6 @@ import (
 )
 
 type ONNXSODInferencer struct {
-	core.ImageSegmentationInferencer
-
 	session         *ort.AdvancedSession
 	preprocessor    *core.ViTImageProcessor
 	postprocessFunc core.ImagePostprocessFunc[ONNXSODInferencer]
@@ -27,6 +25,9 @@ type ONNXSODInferencer struct {
 	width  int
 	height int
 }
+
+// static assert the inferencer
+var _ core.ImageSegmentationInferencer = (*ONNXSODInferencer)(nil)
 
 func NewONNXSODInferencer(
 	modelPath string,
