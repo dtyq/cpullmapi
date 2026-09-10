@@ -60,7 +60,7 @@ func (p *ViTImageProcessor) PreprocessImage(image *vips.ImageRef) ([]float32, er
 	if p.config.Resample != nil {
 		resizeMethod = *p.config.Resample
 	}
-	err = inplaceResizeImage(image, p.config.Size.Width, p.config.Size.Height, resizeMethod)
+	err = InplaceResizeImage(image, p.config.Size.Width, p.config.Size.Height, resizeMethod)
 	if err != nil {
 		return nil, err
 	}
