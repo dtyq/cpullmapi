@@ -5,6 +5,7 @@ type Capability string
 const (
 	CapabilityImageSegmentation Capability = "image-seg"
 	CapabilityOfflineASR        Capability = "offline-asr"
+	CapabilityStreamingASR      Capability = "streaming-asr"
 )
 
 type Inferencer interface {

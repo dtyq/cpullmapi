@@ -7,6 +7,9 @@
 #include "mtmd.h"
 #include "mtmd-helper.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef enum _LCCErrorCode {
     LCC_ERROR_SUCCESS = 0, // "success"
@@ -111,5 +114,61 @@ LCCErrorCode LCCStreamingASRQwen3ASRFeedSamples(
     size_t *pOutputTokenCount,
     size_t rTrimTokens
 );
+
+enum {
+    LCC_STREAMING_ASR_BLOCK_STABLE      = 1u << 0,
+    LCC_STREAMING_ASR_BLOCK_PROVISIONAL = 1u << 1,
+    LCC_STREAMING_ASR_BLOCK_FINAL       = 1u << 2,
+};
+
+typedef struct _LCCStreamingASRChunkBlock {
+    uint64_t sequence;
+    const float *pcmData;       // Borrowed; valid until the next state call.
+    size_t nSamples;            // Padded to 15840 for provisional blocks.
+    size_t nEffectiveFrames;   // Real mel frames before model padding.
+    size_t nPaddedFrames;      // Qwen3A projector input frame count.
+    size_t sampleStart;        // Offset in the accumulated PCM.
+    size_t sampleEnd;          // Exclusive offset of real PCM.
+    size_t nAudioTokens;       // 13 for each Qwen3A 100-frame block.
+    unsigned int flags;         // LCC_STREAMING_ASR_BLOCK_* bitfield.
+} LCCStreamingASRChunkBlock;
+
+typedef struct _LCCStreamingASRChunkCallbacks {
+    void *userData;
+    void (*onRollback)(void *userData, uint64_t firstSequence);
+    void (*onBlock)(void *userData, const LCCStreamingASRChunkBlock *block);
+} LCCStreamingASRChunkCallbacks;
+
+enum {
+    LCC_STREAMING_ASR_CHUNK_HAS_PROVISIONAL = 1u << 0,
+    LCC_STREAMING_ASR_CHUNK_FLUSHED = 1u << 1,
+};
+
+typedef struct _LCCStreamingASRChunkState {
+    LCCStreamingASRChunkCallbacks callbacks;
+    float *pcm;
+    size_t pcmCount;
+    size_t pcmCapacity;
+    float *provisionalPcm;
+    size_t provisionalCapacity;
+    uint64_t nextSequence;
+    uint64_t provisionalFirstSequence;
+    size_t emittedStableBlocks;
+    unsigned int flags;
+} LCCStreamingASRChunkState;
+
+LCCStreamingASRChunkState *LCCStreamingASRChunkStateCreate(
+    const LCCStreamingASRChunkCallbacks *callbacks);
+void LCCStreamingASRChunkStateFree(LCCStreamingASRChunkState *state);
+LCCErrorCode LCCStreamingASRChunkStateFeed(
+    LCCStreamingASRChunkState *state,
+    const float *pcmData,
+    size_t nSamples);
+LCCErrorCode LCCStreamingASRChunkStateFlush(LCCStreamingASRChunkState *state);
+void LCCStreamingASRChunkStateReset(LCCStreamingASRChunkState *state);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _LCC_WRAPPER_H

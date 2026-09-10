@@ -5,6 +5,7 @@ import (
 	"net"
 	"reflect"
 	"regexp"
+	"time"
 
 	"github.com/davidbyttow/govips/v2/vips"
 	"gopkg.in/yaml.v3"
@@ -128,11 +129,35 @@ func (c *OutgoingConfig) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
+const DefaultStreamingASRTimeout = 5 * time.Second
+
+type MiscConfig struct {
+	StreamingASRTimeout time.Duration `yaml:"streamingASRTimeout"`
+}
+
+func (c *MiscConfig) UnmarshalYAML(value *yaml.Node) error {
+	var tmp struct {
+		StreamingASRTimeout time.Duration `yaml:"streamingASRTimeout"`
+	}
+
+	if err := value.Decode(&tmp); err != nil {
+		return err
+	}
+
+	c.StreamingASRTimeout = tmp.StreamingASRTimeout
+	if c.StreamingASRTimeout <= 0 {
+		c.StreamingASRTimeout = DefaultStreamingASRTimeout
+	}
+
+	return nil
+}
+
 type Config struct {
 	HTTP     HTTPConfig        `yaml:"http"`
 	Logs     []LogStreamConfig `yaml:"logs"`
 	Incoming IncomingConfig    `yaml:"incoming"`
 	Outgoing OutgoingConfig    `yaml:"outgoing"`
+	Misc     MiscConfig        `yaml:"misc"`
 
 	Inference InferenceConfig `yaml:"inference"`
 }

@@ -7,7 +7,7 @@ import (
 )
 
 func mvanetONNXSessionOptions() (*ort.SessionOptions, error) {
-	opts, err := core.DefaultONNXSessionOptions()
+	opts, err := defaultONNXSessionOptions()
 	if err != nil {
 		return nil, err
 	}

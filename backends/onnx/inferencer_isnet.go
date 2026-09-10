@@ -11,7 +11,7 @@ func NewONNXISNetInferencer(
 		"input",
 		"output",
 		ben2PostprocessFunc,
-		core.DefaultONNXSessionOptions,
+		defaultONNXSessionOptions,
 	)
 }
 

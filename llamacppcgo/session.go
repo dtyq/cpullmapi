@@ -62,11 +62,14 @@ func NewSession(config SessionConfig) (*Session, error) {
 	if config.NumGPULayers != nil {
 		initParams.modelParams.n_gpu_layers = C.int32_t(*config.NumGPULayers)
 	}
-	if config.UseMmap != nil {
-		initParams.modelParams.use_mmap = C.bool(*config.UseMmap)
-	}
-	if config.UseMlock != nil {
-		initParams.modelParams.use_mlock = C.bool(*config.UseMlock)
+	if config.UseMmap != nil || config.UseMlock != nil {
+		loadMode := C.int32_t(C.LLAMA_LOAD_MODE_MMAP)
+		if config.UseMlock != nil && *config.UseMlock {
+			loadMode = C.int32_t(C.LLAMA_LOAD_MODE_MMAP_MLOCK)
+		} else if config.UseMmap != nil && !*config.UseMmap {
+			loadMode = C.int32_t(C.LLAMA_LOAD_MODE_NONE)
+		}
+		initParams.modelParams.load_mode = int32(loadMode)
 	}
 	if config.NCtx != nil {
 		initParams.ctxParams.n_ctx = C.uint32_t(*config.NCtx)

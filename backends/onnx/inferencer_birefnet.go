@@ -37,7 +37,7 @@ func NewONNXBiRefNetInferencer(
 		"input_image",
 		"output_image",
 		birefnetPostprocessFunc,
-		core.DefaultONNXSessionOptions,
+		defaultONNXSessionOptions,
 	)
 }
 

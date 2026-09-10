@@ -6,6 +6,7 @@
 #include <time.h>
 #include <stdbool.h>
 #include <sys/time.h>
+#include <stdint.h>
 
 #include "wrapper.h"
 
@@ -40,6 +41,7 @@ static inline LCCErrorCode tokenize(
 
     struct mtmd_input_text inputText = {
         .text = prompt,
+        .text_len = prompt == NULL ? 0 : strlen(prompt),
         .add_special = true,
         .parse_special = true,
     };
@@ -424,6 +426,227 @@ end:
 // 6. remove memory from position recorded in step 2 to the end
 // 7. return output tokens in calleeAllocateCallerFreeOutputTokens, and set *pCurrentPos to the position after audio tokens for next round of ASR
 // pass calleeAllocateCallerFreeOutputTokens as pointer to NULL and pOutputTokenCount as pointer to 0 at first call
+/*
+ * The planner owns the complete PCM prefix so that every provisional suffix
+ * can be regenerated from the same waveform after a rollback. The callback
+ * receives borrowed pointers into pcm or provisionalPcm; it must not retain
+ * them across the next Feed, Flush, Reset, or Free call.
+ */
+
+static size_t lccChunkEffectiveFrames(const LCCStreamingASRChunkState *state) {
+    return state->pcmCount == 0 ? 0 : state->pcmCount / 160 + 1;
+}
+
+static bool lccChunkReserve(LCCStreamingASRChunkState *state, size_t required) {
+    if (required <= state->pcmCapacity) {
+        return true;
+    }
+    size_t capacity = state->pcmCapacity == 0 ? 16384 : state->pcmCapacity;
+    while (capacity < required) {
+        if (capacity > SIZE_MAX / 2) {
+            return false;
+        }
+        capacity *= 2;
+    }
+    float *pcm = realloc(state->pcm, capacity * sizeof(*pcm));
+    if (pcm == NULL) {
+        return false;
+    }
+    state->pcm = pcm;
+    state->pcmCapacity = capacity;
+    return true;
+}
+
+static void lccChunkRollback(LCCStreamingASRChunkState *state) {
+    if ((state->flags & LCC_STREAMING_ASR_CHUNK_HAS_PROVISIONAL) == 0) {
+        return;
+    }
+    if (state->callbacks.onRollback != NULL) {
+        state->callbacks.onRollback(
+            state->callbacks.userData,
+            state->provisionalFirstSequence
+        );
+    }
+    state->nextSequence = state->provisionalFirstSequence;
+    state->flags &= ~LCC_STREAMING_ASR_CHUNK_HAS_PROVISIONAL;
+}
+
+static void lccChunkEmitStable(LCCStreamingASRChunkState *state) {
+    const size_t stableCount = lccChunkEffectiveFrames(state) / 100;
+    while (state->emittedStableBlocks < stableCount) {
+        const size_t sampleStart = state->emittedStableBlocks * 15840;
+        LCCStreamingASRChunkBlock block = {
+            .sequence = state->nextSequence++,
+            .pcmData = state->pcm + sampleStart,
+            .nSamples = 15840,
+            .nEffectiveFrames = 100,
+            .nPaddedFrames = 100,
+            .sampleStart = sampleStart,
+            .sampleEnd = sampleStart + 15840,
+            .nAudioTokens = 13,
+            .flags = LCC_STREAMING_ASR_BLOCK_STABLE,
+        };
+        if (state->callbacks.onBlock != NULL) {
+            state->callbacks.onBlock(
+                state->callbacks.userData,
+                &block
+            );
+        }
+        ++state->emittedStableBlocks;
+    }
+}
+
+static bool lccChunkPrepareProvisionalPcm(
+    LCCStreamingASRChunkState *state,
+    size_t sampleStart,
+    size_t realSamples
+) {
+    const size_t blockSamples = 15840;
+    if (state->provisionalCapacity < blockSamples) {
+        float *scratch = realloc(
+            state->provisionalPcm,
+            blockSamples * sizeof(*scratch)
+        );
+        if (scratch == NULL) {
+            return false;
+        }
+        state->provisionalPcm = scratch;
+        state->provisionalCapacity = blockSamples;
+    }
+    memcpy(
+        state->provisionalPcm,
+        state->pcm + sampleStart,
+        realSamples * sizeof(*state->provisionalPcm)
+    );
+    memset(
+        state->provisionalPcm + realSamples,
+        0,
+        (blockSamples - realSamples) * sizeof(*state->provisionalPcm)
+    );
+    return true;
+}
+
+static void lccChunkEmitProvisional(
+    LCCStreamingASRChunkState *state,
+    bool isFinal
+) {
+    const size_t effectiveFrames = lccChunkEffectiveFrames(state);
+    const size_t remainder = effectiveFrames % 100;
+    if (remainder == 0 || state->pcmCount == 0) {
+        return;
+    }
+
+    const size_t sampleStart = state->emittedStableBlocks * 15840;
+    const size_t realSamples = state->pcmCount - sampleStart;
+    if (!isFinal && !lccChunkPrepareProvisionalPcm(state, sampleStart, realSamples)) {
+        return;
+    }
+
+    state->provisionalFirstSequence = state->nextSequence;
+    LCCStreamingASRChunkBlock block = {
+        .sequence = state->nextSequence++,
+        .pcmData = isFinal ? state->pcm + sampleStart : state->provisionalPcm,
+        .nSamples = isFinal ? realSamples : 15840,
+        .nEffectiveFrames = remainder,
+        .nPaddedFrames = 100,
+        .sampleStart = sampleStart,
+        .sampleEnd = state->pcmCount,
+        .nAudioTokens = 13,
+        .flags = isFinal
+            ? LCC_STREAMING_ASR_BLOCK_FINAL
+            : LCC_STREAMING_ASR_BLOCK_PROVISIONAL,
+    };
+    if (state->callbacks.onBlock != NULL) {
+        state->callbacks.onBlock(
+            state->callbacks.userData,
+            &block
+        );
+    }
+    state->flags |= LCC_STREAMING_ASR_CHUNK_HAS_PROVISIONAL;
+}
+
+LCCStreamingASRChunkState *LCCStreamingASRChunkStateCreate(
+    const LCCStreamingASRChunkCallbacks *callbacks
+) {
+    if (callbacks == NULL) {
+        return NULL;
+    }
+    LCCStreamingASRChunkState *state = calloc(1, sizeof(*state));
+    if (state == NULL) {
+        return NULL;
+    }
+    state->callbacks = *callbacks;
+    return state;
+}
+
+void LCCStreamingASRChunkStateFree(LCCStreamingASRChunkState *state) {
+    if (state == NULL) {
+        return;
+    }
+    free(state->pcm);
+    free(state->provisionalPcm);
+    free(state);
+}
+
+LCCErrorCode LCCStreamingASRChunkStateFeed(
+    LCCStreamingASRChunkState *state,
+    const float *pcmData,
+    size_t nSamples
+) {
+    if (state == NULL ||
+        (state->flags & LCC_STREAMING_ASR_CHUNK_FLUSHED) != 0 ||
+        (nSamples != 0 && pcmData == NULL)
+    ) {
+        return LCC_ERROR_INVALID_ARGUMENT;
+    }
+    if (nSamples == 0) {
+        return LCC_ERROR_SUCCESS;
+    }
+    if (state->pcmCount > SIZE_MAX - nSamples ||
+        !lccChunkReserve(
+            state,
+            state->pcmCount + nSamples
+        )
+    ) {
+        return LCC_ERROR_FAILED_ALLOCATE_MEMORY;
+    }
+    lccChunkRollback(state);
+    memcpy(
+        state->pcm + state->pcmCount,
+        pcmData,
+        nSamples * sizeof(*pcmData)
+    );
+    state->pcmCount += nSamples;
+    lccChunkEmitStable(state);
+    lccChunkEmitProvisional(state, false);
+    return LCC_ERROR_SUCCESS;
+}
+
+LCCErrorCode LCCStreamingASRChunkStateFlush(LCCStreamingASRChunkState *state) {
+    if (state == NULL) {
+        return LCC_ERROR_INVALID_ARGUMENT;
+    }
+    if ((state->flags & LCC_STREAMING_ASR_CHUNK_FLUSHED) != 0) {
+        return LCC_ERROR_SUCCESS;
+    }
+    lccChunkRollback(state);
+    lccChunkEmitStable(state);
+    lccChunkEmitProvisional(state, true);
+    state->flags |= LCC_STREAMING_ASR_CHUNK_FLUSHED;
+    return LCC_ERROR_SUCCESS;
+}
+
+void LCCStreamingASRChunkStateReset(LCCStreamingASRChunkState *state) {
+    if (state == NULL) {
+        return;
+    }
+    state->pcmCount = 0;
+    state->nextSequence = 0;
+    state->provisionalFirstSequence = 0;
+    state->emittedStableBlocks = 0;
+    state->flags = 0;
+}
+
 LCCErrorCode LCCStreamingASRQwen3ASRFeedSamples(
     LCCContext *lccCtx,
     int32_t *pCurrentPos,

@@ -34,7 +34,7 @@ func NewONNXSODInferencer(
 	inputName string,
 	outputName string,
 	postprocessFunc core.ImagePostprocessFunc[ONNXSODInferencer],
-	sessionOptionsFunc core.ORTSessionOptionsFunc,
+	sessionOptionsFunc ortSessionOptionsFunc,
 ) (*ONNXSODInferencer, error) {
 	var err error
 	preProcesserConfigJSON, err := os.ReadFile(preprocessorConfigPath)

@@ -30,7 +30,7 @@ func NewONNXBEN2Inferencer(
 		"pixel_values",
 		"alphas",
 		ben2PostprocessFunc,
-		core.DefaultONNXSessionOptions,
+		defaultONNXSessionOptions,
 	)
 }
 
