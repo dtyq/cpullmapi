@@ -3,6 +3,63 @@
 #define _LCC_WRAPPER_H
 // LCC for 'L'lama'C'pp'C'go
 
+// Rename the dlopen-backed entry points to lcc_stub_*. These resolve to stubs
+// emitted by dynamic_symbol.c, which would otherwise collide with the llama.cpp
+// CrispASR links into the same binary. Placed before llama.h so the declarations
+// get renamed along with every call site. dynamic_symbol.c defines the symbols
+// and stringifies the real names for dlsym, and does not include this header.
+#define llama_log_set lcc_stub_llama_log_set
+#define llama_backend_init lcc_stub_llama_backend_init
+#define llama_get_memory lcc_stub_llama_get_memory
+#define llama_memory_seq_rm lcc_stub_llama_memory_seq_rm
+#define llama_memory_seq_add lcc_stub_llama_memory_seq_add
+#define llama_memory_seq_keep lcc_stub_llama_memory_seq_keep
+#define llama_memory_clear lcc_stub_llama_memory_clear
+#define llama_batch_init lcc_stub_llama_batch_init
+#define llama_batch_free lcc_stub_llama_batch_free
+#define llama_n_batch lcc_stub_llama_n_batch
+#define llama_n_ctx lcc_stub_llama_n_ctx
+#define llama_tokenize lcc_stub_llama_tokenize
+#define llama_detokenize lcc_stub_llama_detokenize
+#define llama_model_default_params lcc_stub_llama_model_default_params
+#define llama_model_load_from_file lcc_stub_llama_model_load_from_file
+#define llama_model_get_vocab lcc_stub_llama_model_get_vocab
+#define llama_model_free lcc_stub_llama_model_free
+#define llama_token_to_piece lcc_stub_llama_token_to_piece
+#define llama_vocab_is_eog lcc_stub_llama_vocab_is_eog
+#define llama_context_default_params lcc_stub_llama_context_default_params
+#define llama_init_from_model lcc_stub_llama_init_from_model
+#define llama_sampler_chain_default_params lcc_stub_llama_sampler_chain_default_params
+#define llama_sampler_chain_init lcc_stub_llama_sampler_chain_init
+#define llama_sampler_init_greedy lcc_stub_llama_sampler_init_greedy
+#define llama_sampler_chain_add lcc_stub_llama_sampler_chain_add
+#define llama_sampler_init_top_k lcc_stub_llama_sampler_init_top_k
+#define llama_sampler_init_top_p lcc_stub_llama_sampler_init_top_p
+#define llama_sampler_init_temp lcc_stub_llama_sampler_init_temp
+#define llama_sampler_init_dist lcc_stub_llama_sampler_init_dist
+#define llama_sampler_sample lcc_stub_llama_sampler_sample
+#define llama_sampler_accept lcc_stub_llama_sampler_accept
+#define llama_sampler_free lcc_stub_llama_sampler_free
+#define llama_decode lcc_stub_llama_decode
+#define llama_free lcc_stub_llama_free
+#define mtmd_log_set lcc_stub_mtmd_log_set
+#define mtmd_context_params_default lcc_stub_mtmd_context_params_default
+#define mtmd_init_from_file lcc_stub_mtmd_init_from_file
+#define mtmd_tokenize lcc_stub_mtmd_tokenize
+#define mtmd_bitmap_init_from_audio lcc_stub_mtmd_bitmap_init_from_audio
+#define mtmd_bitmap_free lcc_stub_mtmd_bitmap_free
+#define mtmd_input_chunks_init lcc_stub_mtmd_input_chunks_init
+#define mtmd_input_chunks_get lcc_stub_mtmd_input_chunks_get
+#define mtmd_input_chunks_free lcc_stub_mtmd_input_chunks_free
+#define mtmd_input_chunks_size lcc_stub_mtmd_input_chunks_size
+#define mtmd_input_chunk_get_type lcc_stub_mtmd_input_chunk_get_type
+#define mtmd_input_chunk_get_n_tokens lcc_stub_mtmd_input_chunk_get_n_tokens
+#define mtmd_free lcc_stub_mtmd_free
+#define mtmd_default_marker lcc_stub_mtmd_default_marker
+#define mtmd_helper_log_set lcc_stub_mtmd_helper_log_set
+#define mtmd_helper_eval_chunks lcc_stub_mtmd_helper_eval_chunks
+#define mtmd_helper_eval_chunk_single lcc_stub_mtmd_helper_eval_chunk_single
+
 #include "llama.h"
 #include "mtmd.h"
 #include "mtmd-helper.h"

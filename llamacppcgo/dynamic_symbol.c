@@ -5,33 +5,41 @@
 #include <stdbool.h>
 #include <dlfcn.h>
 
+// Prefix the stubs: unprefixed they collide with the llama.cpp that CrispASR
+// links into the same binary. dlsym keeps the real name, so only the emitted
+// symbols and their backing pointers move.
+#define LCC_SYM(name) lcc_stub_##name
+#define LCC_PTR(name) _lcc_stub_##name
+#define LCC_STR_(x) #x
+#define LCC_STR(x) LCC_STR_(x)
+
 #ifdef _cplusplus
 extern "C" {
 #endif
 
 #if defined(__x86_64__)
 #define STUB(name) \
-void *_##name = NULL; \
+void *LCC_PTR(name) = NULL; \
 __asm__( \
-    ".pushsection .text." #name ", \"ax\", @progbits\n\t" \
-    ".globl " #name "\n\t" \
+    ".pushsection .text." LCC_STR(LCC_SYM(name)) ", \"ax\", @progbits\n\t" \
+    ".globl " LCC_STR(LCC_SYM(name)) "\n\t" \
     ".balign 16\n\t" \
-    ".type " #name ", @function\n\t" \
-    #name ":\n\t" \
+    ".type " LCC_STR(LCC_SYM(name)) ", @function\n\t" \
+    LCC_STR(LCC_SYM(name)) ":\n\t" \
     "endbr64\n\t" \
-    "movq _" #name "(%rip), %r11\n\t" \
+    "movq " LCC_STR(LCC_PTR(name)) "(%rip), %r11\n\t" \
     "jmp *%r11\n\t" \
     ".popsection\n\t" \
 );
 #elif defined(__aarch64__)
 #define STUB(name) \
-void *_##name = NULL; \
+void *LCC_PTR(name) = NULL; \
 __asm__( \
-    ".globl " #name "\n\t" \
-    ".type " #name ", @function\n\t" \
-    #name ":\n\t" \
-    "adrp x16, _" #name "@PAGE\n\t" \
-    "ldr x16, [x16, _" #name "@PAGEOFF]\n\t" \
+    ".globl " LCC_STR(LCC_SYM(name)) "\n\t" \
+    ".type " LCC_STR(LCC_SYM(name)) ", @function\n\t" \
+    LCC_STR(LCC_SYM(name)) ":\n\t" \
+    "adrp x16, " LCC_STR(LCC_PTR(name)) "@PAGE\n\t" \
+    "ldr x16, [x16, " LCC_STR(LCC_PTR(name)) "@PAGEOFF]\n\t" \
     "br x16\n\t" \
 );
 #else
@@ -113,8 +121,8 @@ LCCErrorCode LCCLoadLibrary(const char *libllamaPath, const char *libmtmdPath)
 
     // load the symbols
 #define LOAD_SYMBOL(sym, handleName) do { \
-        _##sym = dlsym(handleName##Handle, #sym); \
-        if (!_##sym) { \
+        LCC_PTR(sym) = dlsym(handleName##Handle, #sym); \
+        if (!LCC_PTR(sym)) { \
             ret = -9 /* LCC_ERROR_FAILED_LOAD_SYMBOL */; \
             fprintf(stderr, "Failed to load symbol %s: %s\n", #sym, dlerror()); \
             goto end; \
