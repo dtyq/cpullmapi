@@ -284,7 +284,7 @@ func (s *Server) mattingHandler(c *gin.Context) {
 					imBytes[y*image.Width()*4+x*4+3] = backgroundColor.A
 				}
 			}
-			bgImage, err := vips.NewImageFromHWCArray(imBytes, 4, image.Width(), image.Height(), vips.BandFormatUchar, vips.InterpretationSRGB)
+			bgImage, err := vips.NewImageFromMemory(imBytes, image.Width(), image.Height(), 4, vips.BandFormatUchar, vips.InterpretationSRGB)
 			if err != nil {
 				s.Logw("matting", "failed to create background image: %v", err)
 				c.Header("X-Error", "failed to create background image")

@@ -13,7 +13,7 @@ func ben2PostprocessFunc(in *ONNXSODInferencer, outputArray []float32) ([]*vips.
 	// since we have only one channel, we can directly use the output array as HWC array
 
 	hwcBytes := unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(outputArray))), len(outputArray)*4)
-	segment, err := vips.NewImageFromHWCArray(hwcBytes, 1, in.width, in.height, vips.BandFormatFloat, vips.InterpretationSRGB)
+	segment, err := vips.NewImageFromMemory(hwcBytes, in.width, in.height, 1, vips.BandFormatFloat, vips.InterpretationSRGB)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create image from go image: %v", err)
 	}
