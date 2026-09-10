@@ -1,3 +1,5 @@
+//go:build with_audio
+
 package lcc
 
 import (

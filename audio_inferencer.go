@@ -21,12 +21,13 @@ type OfflineASRInferencer interface {
 // from an earlier step is regularly rewritten or withdrawn. Consumers replace
 // their buffer with Text instead of appending to it.
 type ASRStreamResult struct {
-	Text    string   `json:"text"`
-	Lang    string   `json:"lang,omitempty"`
-	Counter uint64   `json:"counter,omitempty"`
-	Start   *float64 `json:"t0,omitempty"`
-	End     *float64 `json:"t1,omitempty"`
-	Final   bool     `json:"final,omitempty"`
+	Text           string   `json:"text"`
+	Lang           string   `json:"lang,omitempty"`
+	Counter        uint64   `json:"counter,omitempty"`
+	Start          *float64 `json:"t0,omitempty"`
+	End            *float64 `json:"t1,omitempty"`
+	EndOfUtterance bool     `json:"endOfUtterance,omitempty"`
+	Final          bool     `json:"final,omitempty"`
 }
 
 // ASRStreamConfig is the per-stream override set. The zero value defers to the

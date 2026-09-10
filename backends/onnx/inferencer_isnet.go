@@ -1,3 +1,5 @@
+//go:build with_image
+
 package onnx
 
 import core "github.com/dtyq/cpullmapi"

@@ -1,3 +1,5 @@
+//go:build with_audio
+
 package sherpa_onnx
 
 import (
