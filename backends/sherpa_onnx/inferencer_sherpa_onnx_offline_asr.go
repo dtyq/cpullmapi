@@ -1,16 +1,16 @@
-package cpullmapi
+package sherpa_onnx
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/k2-fsa/sherpa-onnx-go/sherpa_onnx"
+	sherpa "github.com/k2-fsa/sherpa-onnx-go/sherpa_onnx"
 
 	core "github.com/dtyq/cpullmapi"
 )
 
 type SherpaONNXOfflineASRInferencer struct {
-	recognizer *sherpa_onnx.OfflineRecognizer
+	recognizer *sherpa.OfflineRecognizer
 	sampleRate int
 }
 
@@ -18,9 +18,9 @@ type SherpaONNXOfflineASRInferencer struct {
 var _ core.OfflineASRInferencer = (*SherpaONNXOfflineASRInferencer)(nil)
 
 func NewSherpaONNXOfflineASRInferencer(
-	modelConfig sherpa_onnx.OfflineRecognizerConfig,
+	modelConfig sherpa.OfflineRecognizerConfig,
 ) (*SherpaONNXOfflineASRInferencer, error) {
-	recognizer := sherpa_onnx.NewOfflineRecognizer(&modelConfig)
+	recognizer := sherpa.NewOfflineRecognizer(&modelConfig)
 	if recognizer == nil {
 		return nil, fmt.Errorf("failed to create recognizer")
 	}
@@ -32,7 +32,7 @@ func NewSherpaONNXOfflineASRInferencer(
 }
 
 func (i *SherpaONNXOfflineASRInferencer) Close() {
-	sherpa_onnx.DeleteOfflineRecognizer(i.recognizer)
+	sherpa.DeleteOfflineRecognizer(i.recognizer)
 }
 
 func (i *SherpaONNXOfflineASRInferencer) GetCapabilities() []core.Capability {
@@ -44,11 +44,11 @@ func (i *SherpaONNXOfflineASRInferencer) Transcribe(
 	samples []float32,
 	hotwords string,
 ) (result core.ASRResult, err error) {
-	stream := sherpa_onnx.NewOfflineStream(i.recognizer)
+	stream := sherpa.NewOfflineStream(i.recognizer)
 	if stream == nil {
 		return core.ASRResult{}, fmt.Errorf("failed to create stream")
 	}
-	defer sherpa_onnx.DeleteOfflineStream(stream)
+	defer sherpa.DeleteOfflineStream(stream)
 
 	if hotwords != "" && stream.HasOption("hotwords") {
 		stream.SetOption("hotwords", hotwords)
