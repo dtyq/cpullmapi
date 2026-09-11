@@ -52,6 +52,9 @@ type Asset interface {
 	Tags() []string
 	// Paths 给出筛选之后本地应有的路径，用来判断是否已经就绪。
 	Paths(o *Options, sel Selection) []string
+	// Dests 是这个资产占用的目录。要整目录复制或清理时用这个：Paths 只列出
+	// 判断就绪需要的文件，会漏掉库旁边的符号链接和版本文件。
+	Dests(o *Options) []string
 	Fetch(ctx context.Context, o *Options, sel Selection) error
 }
 

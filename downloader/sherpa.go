@@ -47,6 +47,10 @@ func (a *sherpaAsset) Paths(o *Options, _ Selection) []string {
 	return []string{o.modelsPath(a.dest)}
 }
 
+func (a *sherpaAsset) Dests(o *Options) []string {
+	return []string{o.modelsPath(a.dest)}
+}
+
 func (a *sherpaAsset) sources() []string {
 	sources := make([]string, 0, 2)
 	if a.githubRelease != "" {

@@ -1,0 +1,15 @@
+# 只写仓库根目录下的东西，一律带前导斜杠锚定，免得顺手把 third_party 里同名的
+# 目录（llama.cpp/models、CrispASR/models 之类）也一起排掉。
+/.git
+/libs
+/models
+/play
+/test
+/venv
+/config.yml
+/cpullmapi
+/boom.*
+
+# 本机构建产物，镜像里从源码重建。
+/third_party/CrispASR/build_go
+/third_party/llama.cpp/build_go

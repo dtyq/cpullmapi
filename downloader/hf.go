@@ -48,6 +48,10 @@ func (a *hfAsset) Paths(o *Options, sel Selection) []string {
 	return paths
 }
 
+func (a *hfAsset) Dests(o *Options) []string {
+	return []string{o.modelsPath(a.dest)}
+}
+
 func (a *hfAsset) Fetch(ctx context.Context, o *Options, sel Selection) error {
 	source := o.pickSource(o.Source, a.sources, a.name)
 	client := newHTTPClient()

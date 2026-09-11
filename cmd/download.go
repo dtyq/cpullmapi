@@ -17,6 +17,7 @@ type downloadFlags struct {
 	msEndpoint   string
 	modelsDir    string
 	libsDir      string
+	stageTo      string
 	force        bool
 	list         bool
 }
@@ -30,7 +31,9 @@ func newDownloadCommand() *cobra.Command {
 		Long: "Download models and the inference runtime.\n\n" +
 			"With no argument everything is downloaded. To fetch only some of them,\n" +
 			"pass their names; `download --list` prints the names and, after a colon,\n" +
-			"the tags each one can be narrowed down by.",
+			"the tags each one can be narrowed down by.\n\n" +
+			"--stage-to copies the selected assets into another directory, keeping the\n" +
+			"models/ and libs/ split, which is what an image build wants to copy from.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runDownload(cmd, flags, args)
 		},
@@ -43,6 +46,7 @@ func newDownloadCommand() *cobra.Command {
 	f.StringVar(&flags.msEndpoint, "ms-endpoint", "https://www.modelscope.cn", "modelscope endpoint")
 	f.StringVar(&flags.modelsDir, "models-dir", "./models", "directory to store models in")
 	f.StringVar(&flags.libsDir, "libs-dir", "./libs", "directory to store runtime libraries in")
+	f.StringVar(&flags.stageTo, "stage-to", "", "copy the selected assets into this directory, split into models/ and libs/")
 	f.BoolVar(&flags.force, "force", false, "download again even if the files are already there")
 	f.BoolVar(&flags.list, "list", false, "only list the assets and whether they are already local")
 
@@ -98,6 +102,16 @@ func runDownload(cmd *cobra.Command, flags *downloadFlags, args []string) error 
 		fmt.Fprintf(cmd.OutOrStdout(), "==> %s\n", item.asset.Name())
 		if err := item.asset.Fetch(cmd.Context(), opts, item.sel); err != nil {
 			return fmt.Errorf("%s: %w", item.asset.Name(), err)
+		}
+	}
+
+	if flags.stageTo != "" {
+		items := make([]downloader.StageItem, 0, len(selected))
+		for _, item := range selected {
+			items = append(items, downloader.StageItem{Asset: item.asset, Selection: item.sel})
+		}
+		if err := downloader.Stage(flags.stageTo, items, opts); err != nil {
+			return err
 		}
 	}
 	return nil

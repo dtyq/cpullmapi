@@ -76,6 +76,10 @@ func (a *onnxRuntimeAsset) Paths(o *Options, _ Selection) []string {
 	return []string{o.libsPath(a.name, onnxRuntimeLibDir, a.libName())}
 }
 
+func (a *onnxRuntimeAsset) Dests(o *Options) []string {
+	return []string{o.libsPath(a.name)}
+}
+
 func (a *onnxRuntimeAsset) Fetch(ctx context.Context, o *Options, sel Selection) error {
 	version := a.version
 	if sel.Version != "" {

@@ -49,6 +49,10 @@ func (a *githubAsset) Paths(o *Options, sel Selection) []string {
 	return paths
 }
 
+func (a *githubAsset) Dests(o *Options) []string {
+	return []string{o.modelsPath(a.dest)}
+}
+
 func (a *githubAsset) Fetch(ctx context.Context, o *Options, sel Selection) error {
 	o.pickSource(o.Source, []string{SourceGitHub}, a.name)
 
