@@ -3,7 +3,6 @@
 package cpullmapi
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 
@@ -177,24 +176,19 @@ func (s *Server) mattingHandler(c *gin.Context) {
 	}
 
 	// do inference
+	// 拿推理器并且确认它能分割图像。必须在派发之前做：进了 executor 就写不了
+	// 响应头，客户端只会看到一条被后面覆盖掉的错误。
+	inferencer, err := pickInferencer[ImageSegmentationInferencer](
+		s.memoryPool, c.Request.Context(), modelName, "image segmentation")
+	if err != nil {
+		s.Logw("matting", "failed to pick inferencer for %s: %v", modelName, err)
+		c.Header("X-Error", err.Error())
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
 	channel := make(chan *vips.ImageRef)
 	s.executorPool.Dispatch(func() {
-		_inferencer, err := s.memoryPool.GetObj(c.Request.Context(), modelName)
-		if err != nil {
-			s.Logw("matting", "failed to get inferencer: %v", err)
-			close(channel)
-			return
-		}
-
-		inferencer, ok := _inferencer.(ImageSegmentationInferencer)
-		if !ok {
-			s.Logw("matting", "inferencer does not implement ImageSegmentationInferencer interface (model %s does not support image segmentation)", modelName)
-			c.Header("X-Error", fmt.Sprintf("inferencer does not implement ImageSegmentationInferencer interface (model %s does not support image segmentation)", modelName))
-			c.AbortWithStatus(http.StatusInternalServerError)
-			close(channel)
-			return
-		}
-
 		segments, err := inferencer.SegmentImage(c.Request.Context(), image)
 		if err != nil {
 			s.Logw("matting", "failed to segment image: %v", err)

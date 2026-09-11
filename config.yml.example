@@ -15,8 +15,8 @@ outgoing:
     # - "http://.*"
 
 misc:
-  # Transport silence before a streaming connection is dropped, not audio
-  # silence: a client sending silent PCM is still sending. Default 5s.
+  # How long a streaming connection may go without the peer sending anything
+  # before it is dropped. Sending silent PCM still counts as sending. Default 5s.
   streamingASRTimeout: 5s
 
 inference:

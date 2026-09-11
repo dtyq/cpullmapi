@@ -172,6 +172,8 @@ func (c Config) CreateServer() (*Server, error) {
 	// inference
 	apiGroup.POST("/matting", s.mattingHandler)
 	apiGroup.POST("/transcribe", s.transcribeHandler)
+	apiGroup.POST("/transcribe/stream", s.transcribeStreamHandler)
+	apiGroup.GET("/transcribe/realtime", s.transcribeRealtimeHandler)
 
 	// swagger
 	if s.config.HTTP.Debug {

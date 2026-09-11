@@ -53,10 +53,7 @@ func (s *Server) checkCredential(c *gin.Context) {
 	}
 
 	// verify token
-	salt := s.config.HTTP.TokenHash[:16]
-	expectedTokenHash := s.config.HTTP.TokenHash[16:]
-	providedTokenHash := argon2.IDKey([]byte(tokenString), salt, 1, 64*1024, 4, 32)
-	if subtle.ConstantTimeCompare(providedTokenHash, expectedTokenHash) != 1 {
+	if !s.verifyToken(tokenString) {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"code":    CodeUnauthorized,
 			"message": "invalid token",
@@ -66,4 +63,13 @@ func (s *Server) checkCredential(c *gin.Context) {
 
 	c.Set(ContextKeyCredentialOK, true)
 	c.Next()
+}
+
+// verifyToken 比对 token 的 argon2 哈希。WebSocket 握手拿不到 Authorization
+// 头时会走另一条路把 token 递进来，所以这里的校验单独拆出来。
+func (s *Server) verifyToken(tokenString string) bool {
+	salt := s.config.HTTP.TokenHash[:16]
+	expectedTokenHash := s.config.HTTP.TokenHash[16:]
+	providedTokenHash := argon2.IDKey([]byte(tokenString), salt, 1, 64*1024, 4, 32)
+	return subtle.ConstantTimeCompare(providedTokenHash, expectedTokenHash) == 1
 }

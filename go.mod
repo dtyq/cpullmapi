@@ -4,6 +4,7 @@ go 1.27
 
 require (
 	github.com/CrispStrobe/CrispASR/bindings/go v0.0.0-20260524205546-4fda4be53bd6
+	github.com/coder/websocket v1.8.15
 	github.com/davidbyttow/govips/v2 v2.18.1-0.20260607210248-eec4bbd9e550
 	github.com/gin-gonic/gin v1.12.0
 	github.com/gopxl/beep/v2 v2.1.1

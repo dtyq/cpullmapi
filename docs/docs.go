@@ -175,6 +175,107 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/transcribe/realtime": {
+            "get": {
+                "security": [
+                    {
+                        "Token": []
+                    }
+                ],
+                "description": "Transcribe raw signed 16-bit little-endian PCM sent as binary frames.\n\nThe token may be sent either as an \"Authorization: Token \u003ctoken\u003e\" header or, for browsers which cannot set headers on a websocket, in the handshake as \"Sec-WebSocket-Protocol: realtime, openai-insecure-api-key.\u003ctoken\u003e\".\n\nAfter the handshake the client may send one optional text frame {\"type\":\"session.update\",\"hotwords\":\"...\"}, then binary PCM frames, and finally {\"type\":\"input_audio_buffer.commit\"} to end the audio. The server answers with text frames {\"type\":\"transcript\",...}, each carrying the full transcript so far.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "transcribe audio as a stream over websocket",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "model name, for example: LCCStreamingASR",
+                        "name": "modelName",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "101": {
+                        "description": "switching protocols",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "headers": {
+                            "X-Error": {
+                                "type": "string",
+                                "description": "error message"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized"
+                    }
+                }
+            }
+        },
+        "/transcribe/stream": {
+            "post": {
+                "security": [
+                    {
+                        "Token": []
+                    }
+                ],
+                "description": "Transcribe raw signed 16-bit little-endian PCM, streamed in the request body.\n\nPCM parameters are passed in the Content-Type and the query string rather than as multipart form fields, because streaming has to start handing audio to the model before the body ends and multipart would buffer it first.\n\nThe response is a text/event-stream: one \"data: {...}\" per ASRStreamResult, terminated by \"data: [DONE]\". Each result carries the full transcript so far, not a delta. Clients must use fetch with a ReadableStream, since EventSource cannot send a request body.",
+                "consumes": [
+                    "audio/L16"
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "summary": "transcribe audio as a stream over server-sent events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "model name, for example: LCCStreamingASR",
+                        "name": "modelName",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "hotwords, separated by comma",
+                        "name": "hotwords",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "override the r trim tokens configured for the model",
+                        "name": "rTrimTokens",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "one event per result, then data: [DONE]",
+                        "schema": {
+                            "$ref": "#/definitions/cpullmapi.ASRStreamResult"
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "headers": {
+                            "X-Error": {
+                                "type": "string",
+                                "description": "error message"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized"
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -192,22 +293,31 @@ const docTemplate = `{
                 }
             }
         },
-        "cpullmapi.HTTPCode": {
-            "type": "integer",
-            "enum": [
-                200,
-                404,
-                401,
-                403,
-                500
-            ],
-            "x-enum-varnames": [
-                "CodeSuccess",
-                "CodeNotFound",
-                "CodeUnauthorized",
-                "CodeForbidden",
-                "CodeInternalServerError"
-            ]
+        "cpullmapi.ASRStreamResult": {
+            "type": "object",
+            "properties": {
+                "counter": {
+                    "type": "integer"
+                },
+                "endOfUtterance": {
+                    "type": "boolean"
+                },
+                "final": {
+                    "type": "boolean"
+                },
+                "lang": {
+                    "type": "string"
+                },
+                "t0": {
+                    "type": "number"
+                },
+                "t1": {
+                    "type": "number"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
         },
         "cpullmapi.HealthcheckResponse": {
             "type": "object",
@@ -217,11 +327,7 @@ const docTemplate = `{
                     "example": true
                 },
                 "code": {
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/cpullmapi.HTTPCode"
-                        }
-                    ],
+                    "type": "integer",
                     "example": 200
                 },
                 "message": {

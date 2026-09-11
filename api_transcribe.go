@@ -3,7 +3,6 @@
 package cpullmapi
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -170,26 +169,20 @@ func (s *Server) transcribeHandler(c *gin.Context) {
 		downMixMethod: DownMixMethod(downMixMethod),
 	}
 
+	// 拿推理器并且确认它能做离线识别。必须在派发之前做：进了 executor 就写不了
+	// 响应头，客户端什么都看不到。
+	inferencer, err := pickInferencer[OfflineASRInferencer](
+		s.memoryPool, c.Request.Context(), modelName, "offline asr")
+	if err != nil {
+		s.Logw("transcribe", "failed to pick inferencer for %s: %v", modelName, err)
+		c.Header("X-Error", err.Error())
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	sampleRate := inferencer.SampleRate()
+
 	channel := make(chan ASRResult)
 	s.executorPool.Dispatch(func() {
-		_inferencer, err := s.memoryPool.GetObj(c.Request.Context(), modelName)
-		if err != nil {
-			s.Logw("matting", "failed to get inferencer: %v", err)
-			close(channel)
-			return
-		}
-
-		inferencer, ok := _inferencer.(OfflineASRInferencer)
-		if !ok {
-			// what the fuck?
-			s.Logw("transcribe", "inferencer does not implement OfflineASRInferencer interface (model %s does not support offline ASR)", modelName)
-			c.Header("X-Error", fmt.Sprintf("inferencer does not implement OfflineASRInferencer interface (model %s does not support offline ASR)", modelName))
-			c.AbortWithStatus(http.StatusInternalServerError)
-			close(channel)
-			return
-		}
-		sampleRate := inferencer.SampleRate()
-
 		if format.SampleRate != beep.SampleRate(sampleRate) {
 			// do SRC
 			streamer = beep.Resample(4, format.SampleRate, beep.SampleRate(sampleRate), streamer)
