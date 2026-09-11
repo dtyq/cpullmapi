@@ -15,7 +15,7 @@ import (
 
 const (
 	testInputWav   = "../../play/guangdonghua.wav"
-	testModelPath  = "../../models/qwen3-asr-0.6b-q8_0.gguf"
+	testModelPath  = "../../models/cstr/qwen3-asr-0.6b-GGUF/qwen3-asr-0.6b-q8_0.gguf"
 	testSampleRate = 16000
 )
 

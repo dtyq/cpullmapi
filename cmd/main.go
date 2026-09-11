@@ -1,39 +1,45 @@
 package main
 
 import (
-	"flag"
-	"log"
+	"context"
+	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/dtyq/cpullmapi"
+	"github.com/spf13/cobra"
 )
 
+var configPath string
+
 func main() {
-	configPath := flag.String("config", "./config.yml", "path to config file")
-	flag.Parse()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	configData, err := os.ReadFile(*configPath)
-	if err != nil {
-		log.Fatalf("failed to read config file: %v", err)
+	root := newRootCommand()
+	root.SilenceErrors = true
+	root.SilenceUsage = true
+
+	if err := root.ExecuteContext(ctx); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+}
+
+func newRootCommand() *cobra.Command {
+	root := &cobra.Command{
+		Use:   "cpullmapi",
+		Short: "Run large-model inference on CPU",
+		// 不带子命令时按 serve 走，跟以前一样。
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runServe(cmd)
+		},
 	}
 
-	config, err := cpullmapi.ConfigFromYAML(configData)
-	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
-	}
+	root.PersistentFlags().StringVar(&configPath, "config", "./config.yml", "path to the config file")
 
-	if err := config.MiscInitialize(); err != nil {
-		log.Fatalf("failed to initialize misc: %v", err)
-	}
-	defer config.MiscShutdown()
+	root.AddCommand(newServeCommand())
+	root.AddCommand(newDownloadCommand())
 
-	server, err := config.CreateServer()
-	if err != nil {
-		log.Fatalf("failed to create server: %v", err)
-	}
-
-	err = server.Run()
-	if err != nil {
-		log.Fatalf("failed to run server: %v", err)
-	}
+	return root
 }

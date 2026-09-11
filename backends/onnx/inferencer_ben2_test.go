@@ -4,8 +4,6 @@ package onnx
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"testing"
 
 	core "github.com/dtyq/cpullmapi"
@@ -60,14 +58,7 @@ func TestBEN2Inferencer(t *testing.T) {
 			}
 
 			for i, segment := range segments {
-				bin, _, err := segment.ExportPng(nil)
-				if err != nil {
-					t.Fatalf("failed to export segment: %v", err)
-				}
-				err = os.WriteFile(fmt.Sprintf("%s/%s_segment_%d.png", onnxTestOutDir, tc.name, i), bin, 0644)
-				if err != nil {
-					t.Fatalf("failed to write segment: %v", err)
-				}
+				writeSegmentFiles(t, image, segment, tc.name, i)
 			}
 		})
 	}

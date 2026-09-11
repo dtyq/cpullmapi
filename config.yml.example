@@ -20,7 +20,7 @@ misc:
   streamingASRTimeout: 5s
 
 inference:
-  onnxSharedLibraryPath: "./lib/onnxruntime_openvino/onnxruntime/capi/libonnxruntime.so.1.24.1"
+  onnxSharedLibraryPath: "./libs/onnxruntime/lib/libonnxruntime.so"
   slotCount: 2
   threadsPerSlot: 2
   totalMemory: 8192

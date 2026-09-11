@@ -19,7 +19,7 @@ LLAMACPP_CGO_CFLAGS := -I$(abspath $(LLAMACPP_DIR))/include -I$(abspath $(LLAMAC
 GO_TEST_ARGS ?= -v
 GO_ENV := CGO_ENABLED=1 CGO_CFLAGS='$(LLAMACPP_CGO_CFLAGS)' C_INCLUDE_PATH=$(CRISPASR_INCLUDE_PATH) LIBRARY_PATH=$(CRISPASR_LIBRARY_PATH) CGO_LDFLAGS='$(GO_LDFLAGS)'
 
-.PHONY: all build test go-deps crispasr-whisper llamacpp clean
+.PHONY: all build test download go-deps crispasr-whisper llamacpp clean
 
 all: build
 
@@ -29,6 +29,10 @@ build: go-deps crispasr-whisper llamacpp
 
 test: go-deps crispasr-whisper llamacpp
 	@$(GO_ENV) go test -tags '$(GO_TAGS)' $(GO_TEST_ARGS) ./...
+
+# 用法：make download ARGS="onnx-mvanet silero-vad-v5"，不带 ARGS 就全下。
+download:
+	@$(GO_ENV) go run ./cmd download $(ARGS)
 
 go-deps:
 	@go mod download

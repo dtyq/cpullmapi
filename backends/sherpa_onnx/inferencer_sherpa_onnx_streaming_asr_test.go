@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	sherpaStreamingModelDir = "../../models/sherpa-onnx-streaming-paraformer-trilingual-zh-cantonese-en"
+	sherpaStreamingModelDir = "../../models/k2-fsa/sherpa-onnx/sherpa-onnx-streaming-paraformer-trilingual-zh-cantonese-en"
 	sherpaStreamingWav      = "../../play/guangdonghua.wav"
 
 	// 200ms at 16kHz.

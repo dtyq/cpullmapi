@@ -15,7 +15,8 @@ const mvanetModelDir = "models/onnx-community/MVANet-ONNX"
 func requireTestAssets(t *testing.T, paths ...string) {
 	t.Helper()
 
-	for _, path := range paths {
+	// 建 ONNX 推理器离不开运行时库，缺了就直接跳过。
+	for _, path := range append([]string{"libs/onnxruntime/lib/libonnxruntime.so"}, paths...) {
 		if _, err := os.Stat(path); err != nil {
 			t.Skipf("skipping: %s not found", path)
 		}

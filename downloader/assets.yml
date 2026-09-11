@@ -1,0 +1,275 @@
+# 每一条对应一个可以单独下载的资产。
+#
+# kind 决定怎么下：
+#   hf          huggingface/modelscope 上的仓库，逐文件取
+#   github      github 仓库里的裸文件（raw）
+#   sherpa      sherpa-onnx 的模型包，github release 的 tar.bz2 或 hf 仓库
+#   onnxruntime microsoft/onnxruntime 的 release 包，按平台挑
+#
+# dest 一律是 <org>/<repo> 两级，跟下载来源的仓库 slug 一致。
+# 路径相对各自的根目录：模型在 models/ 下，运行时库在 libs/ 下。
+#
+# 命令行写法是 名字[@版本][:tag[:tag...]]：
+#   onnxruntime             用资产自带的版本
+#   onnxruntime@1.31.0      指定版本，只有带 version 的资产能这么写
+#   onnx-mvanet             全部 tag 对应的文件
+#   onnx-mvanet:fp16        只要 fp16
+#   onnx-mvanet:fp16:int8   两个都要
+# 没有 tag 的文件永远都下，有 tag 的只在选中时才下。
+
+assets:
+  - name: onnxruntime
+    kind: onnxruntime
+    version: "1.30.0"
+
+  # ---- 图像分割 ----
+
+  - name: onnx-mvanet
+    kind: hf
+    repo: onnx-community/MVANet-ONNX
+    dest: onnx-community/MVANet-ONNX
+    files:
+      - path: README.md
+      - path: config.json
+      - path: preprocessor_config.json
+      - path: onnx/model.onnx
+        tag: fp32
+      - path: onnx/model_fp16.onnx
+        tag: fp16
+      - path: onnx/model_int8.onnx
+        tag: int8
+      - path: onnx/model_uint8.onnx
+        tag: uint8
+      - path: onnx/model_q4.onnx
+        tag: q4
+      - path: onnx/model_q4f16.onnx
+        tag: q4f16
+      - path: onnx/model_quantized.onnx
+        tag: quantized
+      - path: onnx/model_bnb4.onnx
+        tag: bnb4
+
+  - name: onnx-ben2
+    kind: hf
+    repo: onnx-community/BEN2-ONNX
+    dest: onnx-community/BEN2-ONNX
+    files:
+      - path: README.md
+      - path: config.json
+      - path: preprocessor_config.json
+      - path: onnx/model_fp16.onnx
+
+  - name: onnx-birefnet
+    kind: hf
+    repo: onnx-community/BiRefNet-ONNX
+    dest: onnx-community/BiRefNet-ONNX
+    files:
+      - path: README.md
+      - path: config.json
+      - path: preprocessor_config.json
+      - path: onnx/model.onnx
+        tag: fp32
+      - path: onnx/model_fp16.onnx
+        tag: fp16
+
+  - name: onnx-isnet
+    kind: hf
+    repo: onnx-community/ISNet-ONNX
+    dest: onnx-community/ISNet-ONNX
+    files:
+      - path: README.md
+      - path: config.json
+      - path: preprocessor_config.json
+      - path: onnx/model.onnx
+        tag: fp32
+      - path: onnx/model_fp16.onnx
+        tag: fp16
+      - path: onnx/model_int8.onnx
+        tag: int8
+      - path: onnx/model_uint8.onnx
+        tag: uint8
+      - path: onnx/model_quantized.onnx
+        tag: quantized
+
+  - name: onnx-ormbg
+    kind: hf
+    repo: onnx-community/ormbg-ONNX
+    dest: onnx-community/ormbg-ONNX
+    files:
+      - path: README.md
+      - path: config.json
+      - path: preprocessor_config.json
+      - path: onnx/model.onnx
+        tag: fp32
+      - path: onnx/model_fp16.onnx
+        tag: fp16
+      - path: onnx/model_int8.onnx
+        tag: int8
+      - path: onnx/model_uint8.onnx
+        tag: uint8
+      - path: onnx/model_q4.onnx
+        tag: q4
+      - path: onnx/model_q4f16.onnx
+        tag: q4f16
+      - path: onnx/model_quantized.onnx
+        tag: quantized
+      - path: onnx/model_bnb4.onnx
+        tag: bnb4
+
+  # ---- 标点恢复 ----
+
+  - name: punc-dengcunqin
+    kind: hf
+    repo: dengcunqin/punctuation_restoration
+    sources: [modelscope]
+    dest: dengcunqin/punctuation_restoration
+    files:
+      - path: chn_jpn_yue_eng_ko_spectok.bpe.model
+      - path: onnx_output/model.onnx
+        dest: model.onnx
+
+  - name: punc-firered
+    kind: hf
+    repo: manyeyes/FireRedPunc-zh-en-onnx
+    sources: [modelscope]
+    dest: manyeyes/FireRedPunc-zh-en-onnx
+    files:
+      - path: model.onnx
+
+  - name: punc-ct-transformer
+    kind: sherpa
+    dest: k2-fsa/sherpa-onnx/sherpa-onnx-punct-ct-transformer-zh-en-vocab272727-2024-04-12-int8
+    github:
+      release: punctuation-models
+      archive: sherpa-onnx-punct-ct-transformer-zh-en-vocab272727-2024-04-12-int8.tar.bz2
+
+  # ---- ASR ----
+
+  - name: sherpa-paraformer-zh
+    kind: sherpa
+    dest: k2-fsa/sherpa-onnx/sherpa-onnx-paraformer-zh-2024-03-09
+    github:
+      release: asr-models
+      archive: sherpa-onnx-paraformer-zh-2024-03-09.tar.bz2
+    hf:
+      repo: csukuangfj/sherpa-onnx-paraformer-zh-2024-03-09
+
+  - name: sherpa-streaming-paraformer-trilingual
+    kind: sherpa
+    dest: k2-fsa/sherpa-onnx/sherpa-onnx-streaming-paraformer-trilingual-zh-cantonese-en
+    github:
+      release: asr-models
+      archive: sherpa-onnx-streaming-paraformer-trilingual-zh-cantonese-en.tar.bz2
+    hf:
+      repo: csukuangfj/sherpa-onnx-streaming-paraformer-trilingual-zh-cantonese-en
+
+  - name: sherpa-fire-red-asr2-ctc
+    kind: sherpa
+    dest: k2-fsa/sherpa-onnx/sherpa-onnx-fire-red-asr2-ctc-zh_en-int8-2026-02-25
+    github:
+      release: asr-models
+      archive: sherpa-onnx-fire-red-asr2-ctc-zh_en-int8-2026-02-25.tar.bz2
+
+  - name: sherpa-fire-red-asr2
+    kind: sherpa
+    dest: k2-fsa/sherpa-onnx/sherpa-onnx-fire-red-asr2-zh_en-int8-2026-02-26
+    github:
+      release: asr-models
+      archive: sherpa-onnx-fire-red-asr2-zh_en-int8-2026-02-26.tar.bz2
+
+  - name: sherpa-qwen3-asr-0.6b
+    kind: sherpa
+    dest: k2-fsa/sherpa-onnx/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25
+    github:
+      release: asr-models
+      archive: sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25.tar.bz2
+
+  - name: sherpa-streaming-zipformer-multi-zh-hans
+    kind: sherpa
+    dest: k2-fsa/sherpa-onnx/sherpa-onnx-streaming-zipformer-multi-zh-hans-2023-12-13
+    github:
+      release: asr-models
+      archive: sherpa-onnx-streaming-zipformer-multi-zh-hans-2023-12-13.tar.bz2
+
+  - name: sherpa-streaming-zipformer-zh-xlarge
+    kind: sherpa
+    dest: k2-fsa/sherpa-onnx/sherpa-onnx-streaming-zipformer-zh-xlarge-int8-2025-06-30
+    github:
+      release: asr-models
+      archive: sherpa-onnx-streaming-zipformer-zh-xlarge-int8-2025-06-30.tar.bz2
+
+  - name: qwen3-asr-0.6b-ggml
+    kind: hf
+    repo: ggml-org/Qwen3-ASR-0.6B-GGUF
+    dest: ggml-org/Qwen3-ASR-0.6B-GGUF
+    files:
+      - path: README.md
+      - path: Qwen3-ASR-0.6B-Q8_0.gguf
+        tag: q8_0
+      - path: mmproj-Qwen3-ASR-0.6B-Q8_0.gguf
+        tag: q8_0
+      - path: Qwen3-ASR-0.6B-bf16.gguf
+        tag: bf16
+      - path: mmproj-Qwen3-ASR-0.6B-bf16.gguf
+        tag: bf16
+
+  - name: qwen3-asr-1.7b-ggml
+    kind: hf
+    repo: ggml-org/Qwen3-ASR-1.7B-GGUF
+    dest: ggml-org/Qwen3-ASR-1.7B-GGUF
+    files:
+      - path: README.md
+      - path: Qwen3-ASR-1.7B-Q8_0.gguf
+        tag: q8_0
+      - path: mmproj-Qwen3-ASR-1.7B-Q8_0.gguf
+        tag: q8_0
+      - path: Qwen3-ASR-1.7B-bf16.gguf
+        tag: bf16
+      - path: mmproj-Qwen3-ASR-1.7B-bf16.gguf
+        tag: bf16
+
+  - name: qwen3-asr-0.6b-cstr
+    kind: hf
+    repo: cstr/qwen3-asr-0.6b-GGUF
+    sources: [huggingface]
+    dest: cstr/qwen3-asr-0.6b-GGUF
+    files:
+      - path: qwen3-asr-0.6b-q8_0.gguf
+        tag: q8_0
+      - path: qwen3-asr-0.6b-q4_k.gguf
+        tag: q4_k
+
+  - name: moonshine-streaming-medium
+    kind: hf
+    repo: cstr/moonshine-streaming-medium-GGUF
+    sources: [huggingface]
+    dest: cstr/moonshine-streaming-medium-GGUF
+    files:
+      - path: README.md
+      - path: tokenizer.bin
+      - path: moonshine-streaming-medium.gguf
+        tag: f32
+      - path: moonshine-streaming-medium-q4_k.gguf
+        tag: q4_k
+
+  # ---- VAD ----
+
+  - name: silero-vad-v4
+    kind: github
+    dest: snakers4/silero-vad
+    github:
+      repo: snakers4/silero-vad
+      ref: v4.0
+      files:
+        - path: files/silero_vad.onnx
+          dest: silero_vad_v4.onnx
+
+  - name: silero-vad-v5
+    kind: github
+    dest: snakers4/silero-vad
+    github:
+      repo: snakers4/silero-vad
+      ref: v5.0
+      files:
+        - path: files/silero_vad.onnx
+          dest: silero_vad_v5.onnx

@@ -5,7 +5,6 @@ package onnx
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 
 	core "github.com/dtyq/cpullmapi"
@@ -55,32 +54,7 @@ func TestISNetInferencer(t *testing.T) {
 			}
 
 			for i, segment := range segments {
-				// image255, err := image.Copy()
-				// if err != nil {
-				// 	t.Fatalf("failed to copy image: %v", err)
-				// }
-				// err = image255.DrawRect(
-				// 	vips.ColorRGBA{R: 255, G: 255, B: 255, A: 255},
-				// 	0, 0, image255.Width(), image255.Height(), true)
-				// if err != nil {
-				// 	t.Fatalf("failed to draw rect: %v", err)
-				// }
-				// image255.Close()
-
-				image.AddAlpha()
-				err = segment.Multiply(image)
-				if err != nil {
-					t.Fatalf("failed to multiply image: %v", err)
-				}
-
-				bin, _, err := segment.ExportPng(nil)
-				if err != nil {
-					t.Fatalf("failed to export segment: %v", err)
-				}
-				err = os.WriteFile(fmt.Sprintf("%s/ISNet_%s_segment_%d.png", onnxTestOutDir, tc.name, i), bin, 0644)
-				if err != nil {
-					t.Fatalf("failed to write segment: %v", err)
-				}
+				writeSegmentFiles(t, image, segment, fmt.Sprintf("ISNet_%s", tc.name), i)
 			}
 		})
 	}
