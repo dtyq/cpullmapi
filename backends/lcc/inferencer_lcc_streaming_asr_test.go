@@ -5,14 +5,12 @@ package lcc
 import (
 	"context"
 	"fmt"
-	"os"
 	"slices"
 	"testing"
 
 	core "github.com/dtyq/cpullmapi"
+	"github.com/dtyq/cpullmapi/internal/testutil"
 	"github.com/dtyq/cpullmapi/llamacppcgo"
-	"github.com/gopxl/beep/v2"
-	"github.com/gopxl/beep/v2/wav"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,32 +25,6 @@ const (
 
 	testChunkSize = 15840
 )
-
-func readWavAsFloat32(path string) ([]float32, error) {
-	audioDataFile, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer audioDataFile.Close()
-
-	stream, format, err := wav.Decode(audioDataFile)
-	if err != nil {
-		return nil, err
-	}
-	defer stream.Close()
-
-	var streamer beep.Streamer = stream
-
-	if format.NumChannels > 1 {
-		streamer = core.NewBeepDownMixer(streamer, core.DownMixMethodAverage)
-	}
-
-	if format.SampleRate != defaultSampleRate {
-		streamer = beep.Resample(4, format.SampleRate, beep.SampleRate(defaultSampleRate), streamer)
-	}
-
-	return core.BeepConvertSamplesToFloat32Array(streamer), nil
-}
 
 func newTestInferencer(t *testing.T) *LCCStreamingASRInferencer {
 	t.Helper()
@@ -101,7 +73,9 @@ func feedAll(t *testing.T, stream core.ASRStream, samples []float32) core.ASRStr
 }
 
 func TestLCCStreamingASRInferencer(t *testing.T) {
-	samples, err := readWavAsFloat32(testInputWav)
+	testutil.RequireFiles(t, libllamaPath, libmtmdPath, modelPath, mmprojPath, testInputWav)
+
+	samples, err := testutil.ReadWavAsFloat32(testInputWav, defaultSampleRate)
 	if !assert.NoError(t, err) {
 		t.FailNow()
 	}

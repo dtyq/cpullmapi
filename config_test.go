@@ -2,12 +2,25 @@ package cpullmapi
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
+
+const mvanetModelDir = "models/onnx-community/MVANet-ONNX"
+
+func requireTestAssets(t *testing.T, paths ...string) {
+	t.Helper()
+
+	for _, path := range paths {
+		if _, err := os.Stat(path); err != nil {
+			t.Skipf("skipping: %s not found", path)
+		}
+	}
+}
 
 func TestHTTPConfig(t *testing.T) {
 	emptyTokenHash := [48]byte{}
@@ -71,6 +84,7 @@ func TestModelConfig(t *testing.T) {
 		yaml         string
 		expectErr    string
 		expectConfig ModelConfig
+		assets       []string
 	}{
 		{
 			name: "NoModelType",
@@ -115,17 +129,22 @@ factoryConfig:
 requiredMemory: 1024
 modelType: ONNXMVANet
 factoryConfig:
-    modelPath: ./models/onnx-community/MVANet-ONNX/onnx/model_fp16.onnx
-    preprocessorConfigPath: ./models/onnx-community/MVANet-ONNX/preprocessor_config.json
+    modelPath: ` + mvanetModelDir + `/onnx/model_fp16.onnx
+    preprocessorConfigPath: ` + mvanetModelDir + `/preprocessor_config.json
 `,
 			expectConfig: ModelConfig{
 				RequiredMemory: 1024,
+			},
+			assets: []string{
+				mvanetModelDir + "/onnx/model_fp16.onnx",
+				mvanetModelDir + "/preprocessor_config.json",
 			},
 		},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			// t.Parallel()
+			requireTestAssets(t, tc.assets...)
 
 			var config ModelConfig
 			err := yaml.Unmarshal([]byte(tc.yaml), &config)
@@ -147,6 +166,8 @@ factoryConfig:
 }
 
 func TestConfigCreateMemoryPool(t *testing.T) {
+	requireTestAssets(t, mvanetModelDir+"/onnx/model_fp16.onnx", mvanetModelDir+"/preprocessor_config.json")
+
 	var err error
 	// cleanup := initORT(t)
 	// defer cleanup()
@@ -162,8 +183,8 @@ inference:
             requiredMemory: 1024
             modelType: ONNXMVANet
             factoryConfig:
-                modelPath: ./models/onnx-community/MVANet-ONNX/onnx/model_fp16.onnx
-                preprocessorConfigPath: ./models/onnx-community/MVANet-ONNX/preprocessor_config.json
+                modelPath: ` + mvanetModelDir + `/onnx/model_fp16.onnx
+                preprocessorConfigPath: ` + mvanetModelDir + `/preprocessor_config.json
 `
 
 	var config Config

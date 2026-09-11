@@ -5,62 +5,33 @@ package crispasr
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
 	core "github.com/dtyq/cpullmapi"
-	"github.com/gopxl/beep/v2"
-	"github.com/gopxl/beep/v2/wav"
+	"github.com/dtyq/cpullmapi/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
-const testInputWav = "../../../guangdonghua.wav"
-
-func beepReadWav(path string) ([]float32, error) {
-	audioDataFile, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer audioDataFile.Close()
-
-	stream, format, err := wav.Decode(audioDataFile)
-	if err != nil {
-		return nil, err
-	}
-	defer stream.Close()
-
-	var streamer beep.Streamer = stream
-
-	if format.NumChannels > 1 {
-		// do down mix
-		streamer = core.NewBeepDownMixer(
-			streamer,
-			core.DownMixMethodAverage,
-		)
-	}
-
-	// do SRC if needed
-	if format.SampleRate != 16000 {
-		streamer = beep.Resample(4, format.SampleRate, beep.SampleRate(16000), streamer)
-	}
-
-	float32Samples := core.BeepConvertSamplesToFloat32Array(streamer)
-
-	return float32Samples, nil
-}
+const (
+	testInputWav   = "../../play/guangdonghua.wav"
+	testModelPath  = "../../models/qwen3-asr-0.6b-q8_0.gguf"
+	testSampleRate = 16000
+)
 
 func TestCrispASROfflineASRInferencer(t *testing.T) {
+	testutil.RequireFiles(t, testInputWav, testModelPath)
+
 	var err error
 
 	var inferencer core.OfflineASRInferencer
 	inferencer, err = NewCrispASROfflineASRInferencer(
 		OfflineASRConfig{
-			ModelPath:        "../../models/qwen3-asr-0.6b-q8_0.gguf",
+			ModelPath:        testModelPath,
 			ThreadNum:        4,
 			MaxNewTokens:     4096,
 			FrequencyPenalty: 0.8,
-			SampleRate:       16000,
+			SampleRate:       testSampleRate,
 		},
 	)
 	if err != nil {
@@ -68,7 +39,7 @@ func TestCrispASROfflineASRInferencer(t *testing.T) {
 	}
 	defer inferencer.Close()
 
-	pcm, err := beepReadWav(testInputWav)
+	pcm, err := testutil.ReadWavAsFloat32(testInputWav, testSampleRate)
 	if err != nil {
 		t.Fatalf("failed to read audio file: %v", err)
 	}

@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/dtyq/cpullmapi/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSetLlamaLogFunc(t *testing.T) {
+	testutil.RequireFiles(t, libllamaPath, libmtmdPath)
+
 	var err error
 
 	err = LoadLibrary(libllamaPath, libmtmdPath)

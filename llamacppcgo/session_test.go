@@ -3,14 +3,16 @@ package llamacppcgo
 import (
 	"testing"
 
+	"github.com/dtyq/cpullmapi/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
-// TODO: use enviroment variables for library paths in tests
 const modelPath = "../models/ggml-org/Qwen3-ASR-0.6B-GGUF/Qwen3-ASR-0.6B-Q8_0.gguf"
 const mmprojPath = "../models/ggml-org/Qwen3-ASR-0.6B-GGUF/mmproj-Qwen3-ASR-0.6B-Q8_0.gguf"
 
 func TestSessionCreate(t *testing.T) {
+	testutil.RequireFiles(t, libllamaPath, libmtmdPath, modelPath, mmprojPath)
+
 	var err error
 	err = LoadLibrary(libllamaPath, libmtmdPath)
 	if !assert.NoError(t, err) {

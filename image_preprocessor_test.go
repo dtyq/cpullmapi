@@ -9,6 +9,8 @@ import (
 	"path"
 	"strings"
 	"testing"
+
+	"github.com/davidbyttow/govips/v2/vips"
 )
 
 const binetImageProcessorConfigJSON = `
@@ -46,7 +48,7 @@ func TestViTImageProcessor(t *testing.T) {
 		"test/elysia.bmp",
 	}
 	for _, testImage := range testImages {
-		image, err := openImage(testImage)
+		image, err := vips.NewImageFromFile(testImage)
 		if err != nil {
 			t.Fatalf("failed to open image: %v", err)
 		}

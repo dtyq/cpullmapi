@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	core "github.com/dtyq/cpullmapi"
+	"github.com/dtyq/cpullmapi/internal/testutil"
 )
 
 func TestISNetInferencer(t *testing.T) {
@@ -16,23 +17,26 @@ func TestISNetInferencer(t *testing.T) {
 	cleanup := initORT(t)
 	defer cleanup()
 
+	preprocessorConfigPath := onnxModelsDir + "/ISNet-ONNX/preprocessor_config.json"
 	tcs := []struct {
 		name      string
 		modelPath string
 	}{
-		{name: "fp32", modelPath: "./models/onnx-community/ISNet-ONNX/onnx/model.onnx"},
-		{name: "fp16", modelPath: "./models/onnx-community/ISNet-ONNX/onnx/model_fp16.onnx"},
-		{name: "int8", modelPath: "./models/onnx-community/ISNet-ONNX/onnx/model_int8.onnx"},
-		{name: "uint8", modelPath: "./models/onnx-community/ISNet-ONNX/onnx/model_uint8.onnx"},
-		{name: "quantized", modelPath: "./models/onnx-community/ISNet-ONNX/onnx/model_quantized.onnx"},
+		{name: "fp32", modelPath: onnxModelsDir + "/ISNet-ONNX/onnx/model.onnx"},
+		{name: "fp16", modelPath: onnxModelsDir + "/ISNet-ONNX/onnx/model_fp16.onnx"},
+		{name: "int8", modelPath: onnxModelsDir + "/ISNet-ONNX/onnx/model_int8.onnx"},
+		{name: "uint8", modelPath: onnxModelsDir + "/ISNet-ONNX/onnx/model_uint8.onnx"},
+		{name: "quantized", modelPath: onnxModelsDir + "/ISNet-ONNX/onnx/model_quantized.onnx"},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
+			testutil.RequireFiles(t, tc.modelPath, preprocessorConfigPath, onnxTestImage)
+
 			var inferencer core.ImageSegmentationInferencer
 			inferencer, err = NewONNXISNetInferencer(
 				ONNXSODCommonConfig{
 					ModelPath:              tc.modelPath,
-					PreprocessorConfigPath: "./models/onnx-community/ISNet-ONNX/preprocessor_config.json",
+					PreprocessorConfigPath: preprocessorConfigPath,
 				},
 			)
 			if err != nil {
@@ -40,7 +44,7 @@ func TestISNetInferencer(t *testing.T) {
 			}
 			defer inferencer.Close()
 
-			image, err := openImage("test/testphoto.jpg")
+			image, err := openImage(onnxTestImage)
 			if err != nil {
 				t.Fatalf("failed to open image: %v", err)
 			}
@@ -73,7 +77,7 @@ func TestISNetInferencer(t *testing.T) {
 				if err != nil {
 					t.Fatalf("failed to export segment: %v", err)
 				}
-				err = os.WriteFile(fmt.Sprintf("test/ISNet_%s_segment_%d.png", tc.name, i), bin, 0644)
+				err = os.WriteFile(fmt.Sprintf("%s/ISNet_%s_segment_%d.png", onnxTestOutDir, tc.name, i), bin, 0644)
 				if err != nil {
 					t.Fatalf("failed to write segment: %v", err)
 				}

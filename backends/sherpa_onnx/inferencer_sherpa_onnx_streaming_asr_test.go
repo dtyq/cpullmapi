@@ -5,16 +5,14 @@ package sherpa_onnx
 import (
 	"context"
 	"fmt"
-	"os"
 	"slices"
 	"testing"
 
-	"github.com/gopxl/beep/v2"
-	"github.com/gopxl/beep/v2/wav"
 	sherpa "github.com/k2-fsa/sherpa-onnx-go/sherpa_onnx"
 	"github.com/stretchr/testify/assert"
 
 	core "github.com/dtyq/cpullmapi"
+	"github.com/dtyq/cpullmapi/internal/testutil"
 )
 
 const (
@@ -24,32 +22,6 @@ const (
 	// 200ms at 16kHz.
 	sherpaStreamingChunk = 3200
 )
-
-func sherpaReadWavAsFloat32(path string) ([]float32, error) {
-	audioDataFile, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer audioDataFile.Close()
-
-	stream, format, err := wav.Decode(audioDataFile)
-	if err != nil {
-		return nil, err
-	}
-	defer stream.Close()
-
-	var streamer beep.Streamer = stream
-
-	if format.NumChannels > 1 {
-		streamer = core.NewBeepDownMixer(streamer, core.DownMixMethodAverage)
-	}
-
-	if format.SampleRate != defaultSherpaSampleRate {
-		streamer = beep.Resample(4, format.SampleRate, beep.SampleRate(defaultSherpaSampleRate), streamer)
-	}
-
-	return core.BeepConvertSamplesToFloat32Array(streamer), nil
-}
 
 func newSherpaStreamingInferencer(t *testing.T) *SherpaONNXStreamingASRInferencer {
 	t.Helper()
@@ -101,7 +73,9 @@ func sherpaFeedAll(t *testing.T, stream core.ASRStream, samples []float32) {
 }
 
 func TestSherpaONNXStreamingASRInferencer(t *testing.T) {
-	samples, err := sherpaReadWavAsFloat32(sherpaStreamingWav)
+	testutil.RequireFiles(t, sherpaStreamingModelDir, sherpaStreamingWav)
+
+	samples, err := testutil.ReadWavAsFloat32(sherpaStreamingWav, defaultSherpaSampleRate)
 	if !assert.NoError(t, err) {
 		t.FailNow()
 	}

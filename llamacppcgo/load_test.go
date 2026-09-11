@@ -3,14 +3,16 @@ package llamacppcgo
 import (
 	"testing"
 
+	"github.com/dtyq/cpullmapi/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
-// TODO: use enviroment variables for library paths in tests
-const libllamaPath = "../../llama.cpp/build/bin/libllama.so"
-const libmtmdPath = "../../llama.cpp/build/bin/libmtmd.so"
+const libllamaPath = "../third_party/llama.cpp/build_go/bin/libllama.so"
+const libmtmdPath = "../third_party/llama.cpp/build_go/bin/libmtmd.so"
 
 func TestLoadLibrary(t *testing.T) {
+	testutil.RequireFiles(t, libllamaPath, libmtmdPath)
+
 	var err error
 	// missing library
 	err = LoadLibrary("nonexistent_libllama.so", "nonexistent_libmtmd.so")

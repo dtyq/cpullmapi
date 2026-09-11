@@ -7,23 +7,27 @@ import (
 
 	"github.com/davidbyttow/govips/v2/vips"
 	ort "github.com/yalue/onnxruntime_go"
+
+	"github.com/dtyq/cpullmapi/internal/testutil"
+)
+
+const (
+	onnxRuntimeLib = "./lib/onnxruntime_openvino/onnxruntime/capi/libonnxruntime.so.1.24.1"
+	onnxModelsDir  = "../../models/onnx-community"
+	onnxTestImage  = "../../test/testphoto.jpg"
+	onnxTestOutDir = "../../test"
 )
 
 func openImage(imagePath string) (*vips.ImageRef, error) {
-	image, err := vips.NewImageFromFile(imagePath)
-	if err != nil {
-		return nil, err
-	}
-	return image, nil
+	return vips.NewImageFromFile(imagePath)
 }
 
-const onnxSharedLibraryPath = "./lib/onnxruntime_openvino/onnxruntime/capi/libonnxruntime.so.1.24.1"
-
 func initORT(t *testing.T) func() {
-	ort.SetSharedLibraryPath(onnxSharedLibraryPath)
+	testutil.RequireFiles(t, onnxRuntimeLib)
 
-	err := ort.InitializeEnvironment()
-	if err != nil {
+	ort.SetSharedLibraryPath(onnxRuntimeLib)
+
+	if err := ort.InitializeEnvironment(); err != nil {
 		t.Fatalf("failed to initialize ort environment: %v", err)
 	}
 	return func() {

@@ -1,3 +1,5 @@
+//go:build with_audio
+
 package llamacppcgo
 
 import (
@@ -6,53 +8,20 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/gopxl/beep/v2"
-	"github.com/gopxl/beep/v2/wav"
 	"github.com/stretchr/testify/assert"
 
-	core "github.com/dtyq/cpullmapi"
+	"github.com/dtyq/cpullmapi/internal/testutil"
 )
 
-// const testInputWav = "../../putonghua.wav"
-// const testInputWav = "../../guangdonghua.wav"
-// const testInputWav = "../../被讨厌的勇气.wav"
-// const testInputWav = "../../Stable Diffusion.wav"
-const testInputWav = "../../Rijndael.wav"
-
-func beepReadWav(path string) ([]float32, error) {
-	audioDataFile, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer audioDataFile.Close()
-
-	stream, format, err := wav.Decode(audioDataFile)
-	if err != nil {
-		return nil, err
-	}
-	defer stream.Close()
-
-	var streamer beep.Streamer = stream
-
-	if format.NumChannels > 1 {
-		// do down mix
-		streamer = core.NewBeepDownMixer(
-			streamer,
-			core.DownMixMethodAverage,
-		)
-	}
-
-	// do SRC if needed
-	if format.SampleRate != 16000 {
-		streamer = beep.Resample(4, format.SampleRate, beep.SampleRate(16000), streamer)
-	}
-
-	float32Samples := core.BeepConvertSamplesToFloat32Array(streamer)
-
-	return float32Samples, nil
-}
+// const testInputWav = "../play/putonghua.wav"
+// const testInputWav = "../play/guangdonghua.wav"
+// const testInputWav = "../play/被讨厌的勇气.wav"
+// const testInputWav = "../play/Stable Diffusion.wav"
+const testInputWav = "../play/Rijndael.wav"
 
 func TestQwen3ASR(t *testing.T) {
+	testutil.RequireFiles(t, testInputWav, libllamaPath, libmtmdPath, modelPath, mmprojPath)
+
 	var err error
 	err = LoadLibrary(libllamaPath, libmtmdPath)
 	if !assert.NoError(t, err) {
@@ -91,7 +60,7 @@ func TestQwen3ASR(t *testing.T) {
 	}
 
 	const chunkSize = 15840 // 0.99s for 16kHz for Qwen3-ASR to avoid padding issues
-	samples, err := beepReadWav(testInputWav)
+	samples, err := testutil.ReadWavAsFloat32(testInputWav, 16000)
 	if err != nil {
 		t.FailNow()
 	}
